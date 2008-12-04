@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+{% if account %}
+Congratulations, {{account.username}}. Your account has been created successfully.
+{% else %}
+Sorry, there were problems with the activation.<br>
+Please make sure that the activation link was opened correctly in your Browser.
+{% endif %}
+{% endblock content %}
