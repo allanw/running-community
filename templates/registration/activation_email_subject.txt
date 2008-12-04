@@ -1,1 +1,1 @@
-Activation of your account: {{site}}
+Activation of your {{site}} account

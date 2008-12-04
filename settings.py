@@ -11,6 +11,8 @@ MANAGERS = ADMINS
 
 DATABASE_ENGINE = 'appengine'
 
+LOGIN_REDIRECT_URL = '/'
+
 MEDIA_URL = '/media/'
 
 # Email server settings
@@ -32,7 +34,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'ragendja.middleware.LoginRequiredMiddleware',
 )
 
 ROOT_URLCONF = 'urls'

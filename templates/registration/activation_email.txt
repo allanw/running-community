@@ -1,15 +1,7 @@
-Hello,
-
-somebody, hopefully you, has requested to create an account here
-
-http://{{site}}.
-
-If you want to activate your account, please visit this link: 
+Hi!
+In order to activate your account please visit the following link:
 
 http://{{site}}/accounts/activate/{{activation_key}}/
 
-This link will expire in {{expiration_days}} days.
-
 Thanks,
-
-your {{site}} team
+Your {{site}} team
