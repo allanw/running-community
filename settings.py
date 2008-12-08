@@ -1,65 +1,23 @@
-﻿# -*- coding: utf-8 -*-
-from appenginepatcher import on_production_server
-import os
-DEBUG = not on_production_server
-TEMPLATE_DEBUG = DEBUG
+# -*- coding: utf-8 -*-
+from settings_pre import *
 
-ADMINS = (
-    # ('Your Name', 'your_email@domain.com'),
-)
-MANAGERS = ADMINS
-
-DATABASE_ENGINE = 'appengine'
-
-LOGIN_REDIRECT_URL = '/'
-
-MEDIA_URL = '/media/'
-
-# Email server settings
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 25
-EMAIL_HOST_USER = 'user'
-EMAIL_HOST_PASSWORD = 'password'
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'user@localhost'
-SERVER_EMAIL = 'user@localhost'
-
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.load_template_source',
-    'ragendja.template.app_prefixed_loader',
-    'django.template.loaders.app_directories.load_template_source',
-)
-
-MIDDLEWARE_CLASSES = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.middleware.common.CommonMiddleware',
-)
-
-ROOT_URLCONF = 'urls'
-
-INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.sessions',
-    'django.contrib.webdesign',
-    'appenginepatcher',
-    'myapp',
-    'registration',
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.auth',
-    'django.core.context_processors.media',
-    'django.core.context_processors.request',
-)
-
-TEMPLATE_DIRS = (
-    os.path.join(os.path.dirname(__file__), 'templates'),
-)
-
-CACHE_BACKEND = 'memcached://?timeout=0'
+#ENABLE_PROFILER = True
+#ONLY_FORCED_PROFILE = True
+#PROFILE_PERCENTAGE = 25
+#SORT_PROFILE_RESULTS_BY = 'cumulative' # default is 'time'
+#PROFILE_PATTERN = 'ext.db..+\((?:get|get_by_key_name|fetch|count|put)\)'
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '1234567890'
 
+LOGIN_REDIRECT_URL = '/'
+
+# Extend the list of installed apps defined in common/settings_pre.py
+INSTALLED_APPS += (
+    'myapp',
+    'registration',
+)
+
 ACCOUNT_ACTIVATION_DAYS = 3
+
+from settings_post import *
