@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 from settings import *
 
+TEMPLATE_DEBUG = DEBUG
+MANAGERS = ADMINS
+
+# You can override Django's or some apps' locales with these folders:
+if os.path.exists(os.path.join(COMMON_DIR, 'locale_overrides_common')):
+    INSTALLED_APPS += ('locale_overrides_common',)
+if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
+    INSTALLED_APPS += ('locale_overrides',)
+
 # Import app-specific settings
 for app in INSTALLED_APPS:
     try:
@@ -15,12 +24,3 @@ try:
     from settings_overrides import *
 except ImportError:
     pass
-
-TEMPLATE_DEBUG = DEBUG
-MANAGERS = ADMINS
-
-# You can override Django's or some apps' locales with these folders:
-if os.path.exists(os.path.join(COMMON_DIR, 'locale_overrides_common')):
-    INSTALLED_APPS += ('locale_overrides_common',)
-if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
-    INSTALLED_APPS += ('locale_overrides',)
