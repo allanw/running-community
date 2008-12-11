@@ -5,7 +5,7 @@ api_version: 1
 
 handlers:
 - url: /media
-  static_dir: media
+  static_dir: _generated_media
 
 - url: /.*
   script: common/appenginepatch/main.py

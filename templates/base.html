@@ -2,9 +2,18 @@
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}" xml:lang="{% firstof LANGUAGE_CODE 'en' %}" lang="{% firstof LANGUAGE_CODE 'en' %}">
   <head>
     <title>Website: {% block title %}{% endblock %}</title>
+    {% block css %}
+      <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}combined.css" />
+    {% endblock %}
+
+    {% block js %}
+      <script type="text/javascript" src="{{ MEDIA_URL }}combined-{{ LANGUAGE_CODE }}.js"></script>
+    {% endblock %}
+
+    {% block extra-head %}{% endblock %}
   </head>
 
   <body>

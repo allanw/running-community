@@ -135,6 +135,7 @@ _method_map = {
     }
 
 class HTTPResponse(object):
+    chunked = False
 
     def __init__(self, fetch_response):
         self._fetch_response = fetch_response
@@ -208,7 +209,7 @@ class HTTPConnection(object):
 
     def putheader(self, header, *lines):
         # FIXME: there's no good way to send multiple lines
-        line = ', '.join(lines)
+        line = u', '.join([unicode(line) for line in lines])
         self.headers.append((header, line))
 
     def endheaders(self):
@@ -234,15 +235,22 @@ class HTTPConnection(object):
         else:
             url = '%s://%s%s' % (self.protocol, host, self._url)
         headers = dict(self.headers)
-        for header, value in headers.items():
-            if not isinstance(value, basestring):
-                headers[header] = str(value)
+        # urlfetch seems to log all data which can be very annoying, so
+        # let's just disable it while urlfetch is running
+        loglevel = logging.getLogger().level
         if self.debuglevel:
             logging.debug(
                 'Calling urlfetch.fetch(url=%r, body=%r, method=%r, '
                 'headers=%r, allow_truncated=%r)'
                 % (url, self._body, self._method, headers, self.allow_truncated))
-        resp = urlfetch.fetch(url, self._body, _method_map[self._method], headers, self.allow_truncated)
+        else:
+            logging.getLogger().setLevel(logging.INFO)
+
+        resp = urlfetch.fetch(url, self._body, _method_map[self._method],
+            headers, self.allow_truncated)
+
+        if not self.debuglevel:
+            logging.getLogger().setLevel(loglevel)
         return HTTPResponse(resp)
 
 class HTTPSConnection(HTTPConnection):

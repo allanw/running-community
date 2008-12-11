@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.contrib.auth.forms import *
+from django.contrib.__original__.auth.forms import *
 from django.utils.translation import ugettext as __
 
 def clean_username(self):

@@ -24,8 +24,9 @@ entity and also recreate the keys for any references appropriately.
 
 
 from django.conf import settings
-from django.core.serializers import base, python
-from django.core.serializers.python import *
+from django.core.serializers import base
+from django.core.serializers.__original__.python import *
+from django.core.serializers.__original__ import python
 from django.db import models
 
 from google.appengine.api import datastore_types

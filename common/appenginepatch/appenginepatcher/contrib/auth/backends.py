@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.contrib.auth.models import User
 
-try: 
-    set 
-except NameError: 
-    from sets import Set as set # Python 2.3 fallback
- 	
 class ModelBackend(object):
     def authenticate(self, username=None, password=None):
         user = User.all().filter('username = ', username).get()

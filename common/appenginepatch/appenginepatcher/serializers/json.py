@@ -1,4 +1,4 @@
-from django.core.serializers import json
-from python import Deserializer
-json.PythonDeserializer = Deserializer
-from django.core.serializers.json import *
+from django.core.serializers.__original__.json import *
+from django.core.serializers.__original__ import json
+from python import Deserializer as PythonDeserializer
+json.PythonDeserializer = PythonDeserializer

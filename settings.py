@@ -7,17 +7,41 @@ from settings_pre import *
 #SORT_PROFILE_RESULTS_BY = 'cumulative' # default is 'time'
 #PROFILE_PATTERN = 'ext.db..+\((?:get|get_by_key_name|fetch|count|put)\)'
 
+# Enable I18N and set default language to 'en'
+USE_I18N = True
+LANGUAGE_CODE = 'en'
+MIDDLEWARE_CLASSES += (
+    'django.middleware.locale.LocaleMiddleware',
+)
+GLOBALTAGS += (
+    'django.templatetags.i18n',
+)
+TEMPLATE_CONTEXT_PROCESSORS += (
+    'django.core.context_processors.i18n',
+)
+
+# Restrict JS media generation to only the given LOCALE_SITES
+LOCALE_SITES = (
+    LANGUAGE_CODE,
+)
+
+# Increase this when you update your media on the production site, so users
+# don't have to refresh their cache
+MEDIA_VERSION = 1
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '1234567890'
 
 LOGIN_REDIRECT_URL = '/'
 
-# Extend the list of installed apps defined in common/settings_pre.py
-INSTALLED_APPS += (
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.webdesign',
+    'appenginepatcher',
     'myapp',
     'registration',
+    'mediautils',
 )
-
-ACCOUNT_ACTIVATION_DAYS = 3
 
 from settings_post import *

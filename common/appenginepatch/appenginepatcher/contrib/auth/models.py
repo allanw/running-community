@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.conf import settings
+from django.contrib.__original__.auth.models import *
 from django.db.models.manager import EmptyManager
 from google.appengine.ext import db
-from django.contrib.auth.models import *
 
 AUTH_USER_MODULE = getattr(settings, 'AUTH_USER_MODULE', None)
 if AUTH_USER_MODULE:

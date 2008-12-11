@@ -30,9 +30,9 @@ def get_object_or_404(model, *filters_or_key, **kwargs):
         raise Http404('Object does not exist!')
     return item
 
-def get_list_or_404(model, filters):
+def get_list_or_404(model, *filters):
     data = get_filtered(model.all(), *filters)
-    if not data.get():
+    if not data.count(1):
         raise Http404('No objects found!')
     return data
 
@@ -50,6 +50,9 @@ def transaction(func):
     """Decorator that always runs the given function in a transaction."""
     def _transaction(*args, **kwargs):
         return db.run_in_transaction(func, *args, **kwargs)
+    # In case you need to run it without a transaction you can call
+    # <func>.non_transactional(...)
+    _transaction.non_transactional = func
     return _transaction
 
 @transaction
@@ -65,18 +68,20 @@ def db_add(model, key_name, parent=None, **kwargs):
         return new_entity
     return None
 
-def db_create(model, parent=None, key_name_format=u'%s', **kwargs):
+def db_create(model, parent=None, key_name_format=u'%s',
+        non_transactional=False, **kwargs):
     """
     Creates a new model instance with a random key_name and puts it into the
     datastore.
     """
+    func = non_transactional and db_add.non_transactional or db_add
     charset = ascii_letters + digits
     while True:
         # The key_name is 16 chars long. Make sure that the first char doesn't
         # begin with a digit.
         key_name = key_name_format % (choice(ascii_letters) +
             ''.join([choice(charset) for i in range(15)]))
-        result = db_add(model, key_name, parent=parent, **kwargs)
+        result = func(model, key_name, parent=parent, **kwargs)
         if result:
             return result
 
@@ -86,7 +91,7 @@ def prefetch_references(object_list, references):
     in as few get() calls as possible.
     """
     # TODO: There is no safe way to work with the cache of a ReferenceProperty,
-    # so we don't yet support this.
+    # so we don't yet support checking the cache.
     if object_list and references:
         if not isinstance(references, (list, tuple)):
             references = (references,)
@@ -232,7 +237,7 @@ def to_json_data(model_instance, property_list):
     will be added, instead.
     """
     if hasattr(model_instance, '__iter__'):
-        return [to_json_data(item) for item in model_instance]
+        return [to_json_data(item, property_list) for item in model_instance]
     json_data = {}
     for property in property_list:
         value = getattr_by_path(model_instance, property, None)

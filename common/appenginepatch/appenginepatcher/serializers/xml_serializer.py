@@ -24,7 +24,7 @@ import re
 
 from django.conf import settings
 from django.core.serializers import base
-from django.core.serializers import xml_serializer
+from django.core.serializers.__original__ import xml_serializer
 from django.db import models
 
 from google.appengine.api import datastore_types

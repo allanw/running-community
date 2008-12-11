@@ -11,12 +11,21 @@ setup_project()
 from appenginepatcher.patch import patch_all, setup_logging
 patch_all()
 
+# TODO: Remove this and the respective code in real_main() and profile_main()
+# when this App Engine bug is fixed:
+# http://code.google.com/p/googleappengine/issues/detail?id=772
+path_backup = sys.path[:]
+env_ext = {'DJANGO_SETTINGS_MODULE': 'settings'}
+if 'HOME' in os.environ:
+    env_ext['HOME'] = os.environ['HOME']
+
 import django.core.handlers.wsgi
 from google.appengine.ext.webapp import util
 from django.conf import settings
 
 def real_main():
-    setup_project()
+    sys.path[:] = path_backup
+    os.environ.update(env_ext)
     setup_logging()
 
     # Create a Django application for WSGI.
@@ -26,10 +35,15 @@ def real_main():
     util.run_wsgi_app(application)
 
 def profile_main():
-    setup_project()
-    setup_logging()
+    import logging, cProfile, pstats, random, StringIO
+    only_forced_profile = getattr(settings, 'ONLY_FORCED_PROFILE', False)
+    profile_percentage = getattr(settings, 'PROFILE_PERCENTAGE', None)
+    if (only_forced_profile and
+                'profile=forced' not in os.environ.get('QUERY_STRING')) or \
+            (not only_forced_profile and profile_percentage and
+                float(profile_percentage) / 100.0 <= random.random()):
+        return real_main()
 
-    import logging, cProfile, pstats, StringIO
     prof = cProfile.Profile()
     prof = prof.runctx('real_main()', globals(), locals())
     stream = StringIO.StringIO()

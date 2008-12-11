@@ -40,11 +40,8 @@ def setup_env(manage_py_env=False):
             SDK_PATH,
             os.path.join(SDK_PATH, 'lib', 'webob'),
             os.path.join(SDK_PATH, 'lib', 'yaml', 'lib'),
+            os.path.join(SDK_PATH, 'lib', 'django'),
         ]
-        # Add the SDK's Django version if the user didn't override it.
-        if not (os.path.isdir(os.path.join(COMMON_DIR, 'django')) or
-                os.path.isdir(os.path.join(PROJECT_DIR, 'django'))):
-            EXTRA_PATHS.append(os.path.join(SDK_PATH, 'lib', 'django'))
         sys.path = EXTRA_PATHS + sys.path
         from google.appengine.api import apiproxy_stub_map
 
@@ -59,6 +56,8 @@ def setup_env(manage_py_env=False):
     if not manage_py_env:
         return
 
+    print 'Running on app-engine-patch 0.9.3'
+
     # The following should only be done after patch_all()
 
     # Disable Model validation
@@ -70,6 +69,9 @@ def setup_env(manage_py_env=False):
     FindCommandsInZipfile.orig = management.find_commands
     management.find_commands = FindCommandsInZipfile
     management.get_commands()
+    # Replace startapp command
+    from appenginepatcher.management.commands.startapp import Command
+    management._commands['startapp'] = Command()
     for cmd in management._commands.keys():
         if cmd.startswith('sql') or cmd in ('adminindex', 'createcachetable',
                 'dbshell', 'inspectdb', 'runfcgi', 'syncdb', 'validate',):
@@ -108,15 +110,14 @@ def FindCommandsInZipfile(management_dir):
 def setup_project():
     from appenginepatcher import on_production_server
 
-    # Remove the standard version of Django if the user wants to override it.
-    if 'django' in sys.modules and sys.modules['django'].VERSION[0] < 1:
-        for k in [k for k in sys.modules if k.startswith('django')]:
-            del sys.modules[k]
+    # Remove the standard version of Django
+    for k in [k for k in sys.modules if k.startswith('django')]:
+        del sys.modules[k]
 
     # We must set this env var *before* importing any part of Django
     os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
     if on_production_server:
-        # This fixes pwd import bug for os.path.expanduser()
+        # This fixes a pwd import bug for os.path.expanduser()
         os.environ['HOME'] = PROJECT_DIR
 
     # Add the two parent folders and appenginepatcher's lib folder to sys.path.

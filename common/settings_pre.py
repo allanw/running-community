@@ -11,8 +11,6 @@ DATABASE_ENGINE = 'appengine'
 # to load the internationalization machinery.
 USE_I18N = True
 
-MEDIA_URL = '/media/'
-
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = 25
 EMAIL_HOST_USER = 'user'
@@ -36,15 +34,6 @@ NO_LOGIN_REQUIRED_PREFIXES = ()
 
 ROOT_URLCONF = 'urls'
 
-INSTALLED_APPS = (
-    # django/foreign
-    'django.contrib.auth',
-    'django.contrib.sessions',
-    'django.contrib.webdesign',
-    # common
-    'appenginepatcher',
-)
-
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
     'django.core.context_processors.media',
@@ -67,4 +56,10 @@ LOCALE_PATHS = (
     os.path.join(PROJECT_DIR, 'media', 'locale'),
 ) + tuple([os.path.join(dir, 'locale') for dir in TEMPLATE_DIRS])
 
+FILE_UPLOAD_HANDLERS = (
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+)
+
 CACHE_BACKEND = 'memcached://?timeout=0'
+
+COMBINE_MEDIA = {}
