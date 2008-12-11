@@ -13,9 +13,14 @@ if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in ('generatemedia', 'update'):
         updatemedia()
 
+    # Generate compressed media files for manage.py update
     if len(sys.argv) >= 2 and sys.argv[1] == 'update':
-        generatemedia(False)
+        generatemedia(True)
 
     import settings
     from django.core.management import execute_manager
     execute_manager(settings)
+
+    # Generate compressed media files for manage.py update
+    if len(sys.argv) >= 2 and sys.argv[1] == 'update':
+        generatemedia(False)
