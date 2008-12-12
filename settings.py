@@ -21,9 +21,9 @@ TEMPLATE_CONTEXT_PROCESSORS += (
 )
 
 # Restrict JS media generation to only the given LOCALE_SITES
-LOCALE_SITES = (
-    LANGUAGE_CODE,
-)
+#LOCALE_SITES = (
+#    LANGUAGE_CODE,
+#)
 
 # Increase this when you update your media on the production site, so users
 # don't have to refresh their cache. By setting this your MEDIA_URL

@@ -19,8 +19,11 @@ if __name__ == '__main__':
 
     import settings
     from django.core.management import execute_manager
-    execute_manager(settings)
-
-    # Generate compressed media files for manage.py update
-    if len(sys.argv) >= 2 and sys.argv[1] == 'update':
-        generatemedia(False)
+    try:
+        execute_manager(settings)
+    finally:
+        # Regenerate uncompressed media files after manage.py update
+        import sys
+        from mediautils.generatemedia import generatemedia
+        if len(sys.argv) >= 2 and sys.argv[1] == 'update':
+            generatemedia(False)

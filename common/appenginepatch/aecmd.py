@@ -58,55 +58,6 @@ def setup_env(manage_py_env=False):
 
     print 'Running on app-engine-patch 0.9.3'
 
-    # The following should only be done after patch_all()
-
-    # Disable Model validation
-    from django.core.management import validation
-    validation.get_validation_errors = lambda x, y=0: 0
-
-    # Remove unsupported commands
-    from django.core import management
-    FindCommandsInZipfile.orig = management.find_commands
-    management.find_commands = FindCommandsInZipfile
-    management.get_commands()
-    # Replace startapp command
-    from appenginepatcher.management.commands.startapp import Command
-    management._commands['startapp'] = Command()
-    for cmd in management._commands.keys():
-        if cmd.startswith('sql') or cmd in ('adminindex', 'createcachetable',
-                'dbshell', 'inspectdb', 'runfcgi', 'syncdb', 'validate',):
-            del management._commands[cmd]
-
-def FindCommandsInZipfile(management_dir):
-    """
-    Given a path to a management directory, returns a list of all the command
-    names that are available.
-
-    This implementation also works when Django is loaded from a zip.
-
-    Returns an empty list if no commands are defined.
-    """
-    zip_marker = '.zip' + os.sep
-    if zip_marker not in management_dir:
-        return FindCommandsInZipfile.orig(management_dir)
-
-    import zipfile
-    # Django is sourced from a zipfile, ask zip module for a list of files.
-    filename, path = management_dir.split(zip_marker)
-    zipinfo = zipfile.ZipFile(filename + '.zip')
-
-    # The zipfile module returns paths in the format of the operating system
-    # that created the zipfile! This may not match the path to the zipfile
-    # itself. Convert operating system specific characters to '/'.
-    path = path.replace('\\', '/')
-    def _IsCmd(t):
-        """Returns true if t matches the criteria for a command module."""
-        t = t.replace('\\', '/')
-        return t.startswith(path) and not os.path.basename(t).startswith('_') \
-            and t.endswith('.py')
-
-    return [os.path.basename(f)[:-3] for f in zipinfo.namelist() if _IsCmd(f)]
-
 def setup_project():
     from appenginepatcher import on_production_server
 

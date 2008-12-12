@@ -5,16 +5,11 @@
 # http://code.google.com/p/googleappengine/issues/list
 
 from google.appengine.ext import db
-import logging, new, os, sys
+import logging, new, os, re, sys
 
 base_path = os.path.abspath(os.path.dirname(__file__))
 
-def patch_package(original_name, path):
-    original = __import__(original_name, {}, {}, [''])
-    patched = new.module(original_name)
-    patched.__path__ = original.__path__[:]
-    original.__path__.insert(0, os.path.join(base_path, path))
-    sys.modules[original_name + '.__original__'] = patched
+get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', ' \\1', class_name).lower().strip()
 
 def patch_all():
     patch_python()
@@ -102,6 +97,7 @@ def patch_app_engine():
 
     # Add _meta to Model, so porting code becomes easier (generic views,
     # xheaders, and serialization depend on it).
+    from django.utils.translation import string_concat
     class _meta(object):
         many_to_many = []
         class pk:
@@ -112,10 +108,13 @@ def patch_app_engine():
                 self.app_label = model.__module__.split('.')[-2]
             except IndexError:
                 raise ValueError('Django expects models (here: %s.%s) to be defined in their own apps!' % (model.__module__, model.__name__))
+            Meta = getattr(model, 'Meta', None)
             self.object_name = model.__name__
             self.module_name = self.object_name.lower()
-            self.verbose_name = self.object_name.lower()
-            self.verbose_name_plural = None
+            self.verbose_name = getattr(Meta,
+                'verbose_name', get_verbose_name(self.object_name))
+            self.verbose_name_plural = getattr(Meta,
+                'verbose_name_plural', string_concat(self.verbose_name, 's'))
             self.abstract = False
             self.model = model
 
@@ -192,45 +191,16 @@ def log_exception(*args, **kwargs):
     logging.exception('Exception in request:')
 
 def patch_django():
-    # In order speed things up and consume less memory we lazily replace
-    # modules if possible. This requires some __path__ magic. :)
-
-    # Add fake 'appengine' DB backend
-    # This also creates a separate datastore for each project.
-    from appenginepatcher.db_backends import appengine
-    sys.modules['django.db.backends.appengine'] = appengine
-
-    # Replace generic views
-    patch_package('django.views.generic', 'generic_views')
-
-    # Replace db session backend and tests
-    patch_package('django.contrib.sessions', 'sessions')
-    patch_package('django.contrib.sessions.backends', 'session_backends')
-
-    # Replace auth models and other apps in contrib that have a non-empty
-    # __init__.py
-    patch_package('django.contrib', 'contrib')
-
-    # Patch serializers
-    patch_package('django.core.serializers', 'serializers')
+    # Most patches are part of the django-app-engine project:
+    # http://www.bitbucket.org/wkornewald/django-app-engine/
 
     # Replace ModelForm
-    from google.appengine.ext.db import djangoforms
     from django import forms
     from django.forms import models as modelforms
+    from google.appengine.ext.db import djangoforms
     forms.ModelForm = modelforms.ModelForm = djangoforms.ModelForm
     forms.ModelFormMetaclass = djangoforms.ModelFormMetaclass
     modelforms.ModelFormMetaclass = djangoforms.ModelFormMetaclass
-
-    # Replace mail backend.
-    # This can't be done with patch_package() because the test environment
-    # monkey-patches SMTPConnection and this has to be done on the original
-    # module instead of a "proxy".
-    from appenginepatcher import mail as gmail
-    from django.core import mail
-    mail.SMTPConnection = gmail.GoogleSMTPConnection
-    mail.mail_admins = gmail.mail_admins
-    mail.mail_managers = gmail.mail_managers
 
     fix_app_engine_bugs()
 

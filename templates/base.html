@@ -17,19 +17,32 @@
   </head>
 
   <body>
-    <div class="menu">
-      <a href="/">Home</a>
-      <a href="{% url myapp.views.list_people %}">Generic views sample</a>
-      --
-      {% if user.is_authenticated %}
-        Welcome, {{ user.username }}!
-        <a href="{% url django.contrib.auth.views.logout %}">Logout</a>
-      {% else %}
-        <a href="{% url django.contrib.auth.views.login %}">Login</a>
-        <a href="{% url registration.views.register %}">Register</a>
-      {% endif %}
-    </div>
+    {% block header %}
+      <div id="header">
+        <div class="menu">
+          <a href="/">Home</a>
+          <a href="{% url myapp.views.list_people %}">Generic views sample</a>
+          --
+          {% if user.is_authenticated %}
+            Welcome, {{ user.username }}!
+            <a href="{% url django.contrib.auth.views.logout %}">Logout</a>
+          {% else %}
+            <a href="{% url django.contrib.auth.views.login %}">Login</a>
+            <a href="{% url registration.views.register %}">Register</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endblock %}
     <div id="content" class="column">
+      {% block content-header %}
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        {% if info %}<div class="info">{{ info }}</div>{% endif %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="info">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endblock %}
       {% block content %}{% endblock %}
     </div>
   </body>

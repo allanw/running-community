@@ -27,11 +27,16 @@ def copy_file(path, generated):
 def compress_file(path):
     if path.endswith(('.css', '.js')):
         print '  Running yuicompressor...',
-        cmd = Popen(['java', '-jar', compressor, path, '-o', path])
-        if cmd.wait() == 0:
-            print '%d bytes' % os.path.getsize(path)
-        else:
-            print 'Failed!'
+        try:
+            cmd = Popen(['java', '-jar', compressor, path, '-o', path])
+            if cmd.wait() == 0:
+                print '%d bytes' % os.path.getsize(path)
+            else:
+                print 'Failed!'
+        except:
+            raise Exception("Failed to execute Java VM. "
+                "Please make sure that you have installed Java "
+                "and that it's in your PATH.")
 
 def updatemedia(compressed=None):
     if 'mediautils' not in settings.INSTALLED_APPS:
