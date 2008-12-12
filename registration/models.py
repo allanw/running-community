@@ -48,9 +48,8 @@ class RegistrationManager(models.Manager):
         # SHA1 hash; if it doesn't, no point trying to look it up in
         # the database.
         if SHA1_RE.search(activation_key):
-            try:
-                profile = RegistrationProfile.get_by_key_name("key_"+activation_key)
-            except:
+            profile = RegistrationProfile.get_by_key_name("key_"+activation_key)
+            if not profile:
                 return False
             if not profile.activation_key_expired():
                 user = profile.user
@@ -192,6 +191,7 @@ class RegistrationManager(models.Manager):
                 user = profile.user
                 if not user.is_active:
                     user.delete()
+                    profile.delete()
 
 
 class RegistrationProfile(db.Model):

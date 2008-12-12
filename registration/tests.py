@@ -69,7 +69,7 @@ class RegistrationModelTests(RegistrationTestCase):
         Test that a ``RegistrationProfile`` is created for a new user.
         
         """
-        self.assertEqual(RegistrationProfile.objects.count(), 2)
+        self.assertEqual(RegistrationProfile.all().count(), 2)
 
     def test_activation_email(self):
         """
@@ -86,18 +86,18 @@ class RegistrationModelTests(RegistrationTestCase):
         
         """
         # Activating a valid user returns the user.
-        self.failUnlessEqual(RegistrationProfile.objects.activate_user(RegistrationProfile.objects.get(user=self.sample_user).activation_key).pk,
-                             self.sample_user.pk)
+        self.failUnlessEqual(RegistrationProfile.objects.activate_user(RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key).key(),
+                             self.sample_user.key())
         
         # The activated user must now be active.
-        self.failUnless(User.objects.get(pk=self.sample_user.pk).is_active)
+        self.failUnless(User.get(self.sample_user.key()).is_active)
         
         # The activation key must now be reset to the "already activated" constant.
-        self.failUnlessEqual(RegistrationProfile.objects.get(user=self.sample_user).activation_key,
+        self.failUnlessEqual(RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key,
                              RegistrationProfile.ACTIVATED)
         
         # Activating an expired user returns False.
-        self.failIf(RegistrationProfile.objects.activate_user(RegistrationProfile.objects.get(user=self.expired_user).activation_key))
+        self.failIf(RegistrationProfile.objects.activate_user(RegistrationProfile.all().filter('user =', self.expired_user).get().activation_key))
         
         # Activating from a key that isn't a SHA1 hash returns False.
         self.failIf(RegistrationProfile.objects.activate_user('foo'))
@@ -113,14 +113,14 @@ class RegistrationModelTests(RegistrationTestCase):
         
         """
         # Unexpired user returns False.
-        self.failIf(RegistrationProfile.objects.get(user=self.sample_user).activation_key_expired())
+        self.failIf(RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key_expired())
 
         # Expired user returns True.
-        self.failUnless(RegistrationProfile.objects.get(user=self.expired_user).activation_key_expired())
+        self.failUnless(RegistrationProfile.all().filter('user =', self.expired_user).get().activation_key_expired())
 
         # Activated user returns True.
-        RegistrationProfile.objects.activate_user(RegistrationProfile.objects.get(user=self.sample_user).activation_key)
-        self.failUnless(RegistrationProfile.objects.get(user=self.sample_user).activation_key_expired())
+        RegistrationProfile.objects.activate_user(RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key)
+        self.failUnless(RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key_expired())
 
     def test_expired_user_deletion(self):
         """
@@ -130,7 +130,7 @@ class RegistrationModelTests(RegistrationTestCase):
         
         """
         RegistrationProfile.objects.delete_expired_users()
-        self.assertEqual(RegistrationProfile.objects.count(), 1)
+        self.assertEqual(RegistrationProfile.all().count(), 1)
 
     def test_management_command(self):
         """
@@ -139,7 +139,7 @@ class RegistrationModelTests(RegistrationTestCase):
         
         """
         management.call_command('cleanupregistration')
-        self.assertEqual(RegistrationProfile.objects.count(), 1)
+        self.assertEqual(RegistrationProfile.all().count(), 1)
 
 
 class RegistrationFormTests(RegistrationTestCase):
@@ -278,8 +278,8 @@ class RegistrationViewTests(RegistrationTestCase):
                                            'password1': 'foo',
                                            'password2': 'foo' })
         self.assertEqual(response.status_code, 200)
-        self.failUnless(response.context['form'])
-        self.failUnless(response.context['form'].errors)
+        self.failUnless(response.context[0]['form'])
+        self.failUnless(response.context[0]['form'].errors)
 
         response = self.client.post(reverse('registration_register'),
                                     data={ 'username': 'foo',
@@ -288,7 +288,7 @@ class RegistrationViewTests(RegistrationTestCase):
                                            'password2': 'foo' })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], 'http://testserver%s' % reverse('registration_complete'))
-        self.assertEqual(RegistrationProfile.objects.count(), 3)
+        self.assertEqual(RegistrationProfile.all().count(), 3)
     
     def test_activation_view(self):
         """
@@ -298,21 +298,21 @@ class RegistrationViewTests(RegistrationTestCase):
         """
         # Valid user puts the user account into the context.
         response = self.client.get(reverse('registration_activate',
-                                           kwargs={ 'activation_key': RegistrationProfile.objects.get(user=self.sample_user).activation_key }))
+                                           kwargs={ 'activation_key': RegistrationProfile.all().filter('user =', self.sample_user).get().activation_key }))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['account'].pk, self.sample_user.pk)
+        self.assertEqual(response.context[0]['account'].key(), self.sample_user.key())
 
         # Expired user sets the account to False.
         response = self.client.get(reverse('registration_activate',
-                                           kwargs={ 'activation_key': RegistrationProfile.objects.get(user=self.expired_user).activation_key }))
-        self.failIf(response.context['account'])
+                                           kwargs={ 'activation_key': RegistrationProfile.all().filter('user =', self.expired_user).get().activation_key }))
+        self.failIf(response.context[0]['account'])
 
         # Invalid key gets to the view, but sets account to False.
         response = self.client.get(reverse('registration_activate',
                                            kwargs={ 'activation_key': 'foo' }))
-        self.failIf(response.context['account'])
+        self.failIf(response.context[0]['account'])
 
         # Nonexistent key sets the account to False.
         response = self.client.get(reverse('registration_activate',
                                            kwargs={ 'activation_key': sha.new('foo').hexdigest() }))
-        self.failIf(response.context['account'])
+        self.failIf(response.context[0]['account'])
