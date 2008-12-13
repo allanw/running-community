@@ -13,13 +13,16 @@ if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
     INSTALLED_APPS += ('locale_overrides',)
 
 # Add start markers, so apps can insert JS/CSS at correct position
-for combine in ('combined-%(LANGUAGE_CODE)s.js', 'combined.css'):
+COMBINE_MEDIA.setdefault('combined-%(LANGUAGE_CODE)s.js', ())
+COMBINE_MEDIA.setdefault('combined-%(LANGUAGE_DIR)s.css', ())
+def add_app_media(env, combine, *appmedia):
+    COMBINE_MEDIA = env['COMBINE_MEDIA']
     COMBINE_MEDIA.setdefault(combine, ())
-    COMBINE_MEDIA[combine] = ('!START!',) + COMBINE_MEDIA[combine]
-def add_app_media(env, media, *appmedia):
-    index = list(env['COMBINE_MEDIA'][media]).index('!START!')
-    env['COMBINE_MEDIA'][media] = env['COMBINE_MEDIA'][media][:index] + \
-        appmedia + env['COMBINE_MEDIA'][media][index:]
+    if '!START!' not in COMBINE_MEDIA[combine]:
+        COMBINE_MEDIA[combine] = ('!START!',) + COMBINE_MEDIA[combine]
+    index = list(COMBINE_MEDIA[combine]).index('!START!')
+    COMBINE_MEDIA[combine] = COMBINE_MEDIA[combine][:index] + \
+        appmedia + COMBINE_MEDIA[combine][index:]
 
 # Import app-specific settings
 for app in INSTALLED_APPS:
@@ -32,7 +35,9 @@ for app in INSTALLED_APPS:
         pass
 
 # Remove start markers
-for combine in ('combined-%(LANGUAGE_CODE)s.js', 'combined.css'):
+for combine in COMBINE_MEDIA:
+    if '!START!' not in COMBINE_MEDIA[combine]:
+        continue
     index = list(COMBINE_MEDIA[combine]).index('!START!')
     COMBINE_MEDIA[combine] = COMBINE_MEDIA[combine][:index] + \
         COMBINE_MEDIA[combine][index+1:]

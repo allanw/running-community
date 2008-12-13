@@ -90,12 +90,15 @@ def updatemedia(compressed=None):
             app, filepath = filename.replace('/', os.sep).split(os.sep, 1)
             abspathed_group.append(os.path.abspath(
                 os.path.join(media_dirs[app], filepath)))
-        if '%(LANGUAGE_CODE)s' in combined:
+        if '%(LANGUAGE_CODE)s' in combined or '%(LANGUAGE_DIR)s' in combined:
             # This file uses i18n, so generate a separate file per language.
             # The language data is always added before all other files.
             if not os.path.exists(i18n_dir):
                 os.makedirs(i18n_dir)
+        if '%(LANGUAGE_CODE)s' in combined:
             for LANGUAGE_CODE in LANGUAGES:
+                LANGUAGE_BIDI = LANGUAGE_CODE.split('-')[0] in \
+                    settings.LANGUAGES_BIDI
                 filename = combined % {'LANGUAGE_CODE': LANGUAGE_CODE}
                 filepath = os.path.join(i18n_dir, filename)
                 tocombine.append(filepath)
@@ -105,11 +108,13 @@ def updatemedia(compressed=None):
                 request.GET['language'] = LANGUAGE_CODE
                 # Add some JavaScript data
                 content = 'var LANGUAGE_CODE = "%s";\n' % LANGUAGE_CODE
+                content += 'var LANGUAGE_BIDI = ' + \
+                    (LANGUAGE_BIDI and 'true' or 'false') + ';\n'
                 content += javascript_catalog(request,
                     packages=settings.INSTALLED_APPS).content
                 # The hgettext() function just calls gettext() internally, but
                 # it won't get indexed by makemessages.
-                content += '\nwindow.hgettext = function(text) { return gettext(text); };'
+                content += '\nwindow.hgettext = function(text) { return gettext(text); };\n'
                 # Check if content changed, so we don't regenerate the i18n
                 # file unnecessarily.
                 if os.path.exists(filepath):
@@ -124,6 +129,11 @@ def updatemedia(compressed=None):
                 fp = codecs.open(filepath, 'w', 'utf-8')
                 fp.write(content)
                 fp.close()
+        elif '%(LANGUAGE_DIR)s' in combined:
+            for LANGUAGE_DIR in ('ltr', 'rtl'):
+                value = {'LANGUAGE_DIR': LANGUAGE_DIR}
+                COMBINE_MEDIA[combined % value] = [item % value
+                                                   for item in abspathed_group]
         else:
             COMBINE_MEDIA[combined] = abspathed_group
         tocombine.extend(abspathed_group)
