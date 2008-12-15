@@ -92,7 +92,7 @@ def patch_app_engine():
 
     # Add repr to make debugging a little bit easier
     def __repr__(self):
-        d = dict([(k, getattr(self, k)) for k in self.properties()])
+        d = dict([(k, getattr(self, k)) for k in self._meta.fields])
         return u'%s(**%s)' % (self.__class__.__name__, repr(d))
     db.Model.__repr__ = __repr__
 
@@ -139,7 +139,8 @@ def patch_app_engine():
 
         @property
         def local_fields(self):
-            return tuple(self.model.properties().values())
+            return tuple(sorted(self.model.properties().values(),
+                                key=lambda prop: prop.creation_counter))
 
         @property
         def fields(self):
