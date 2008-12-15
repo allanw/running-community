@@ -60,7 +60,7 @@ def patch_app_engine():
                 return query._model_class
     db.Query.model = ModelProperty()
 
-    # Add a few Model methods that are needed for serialization
+    # Add a few Model methods that are needed for serialization and ModelForm
     def _get_pk_val(self):
         return unicode(self.key())
     db.Model._get_pk_val = _get_pk_val
@@ -72,22 +72,37 @@ def patch_app_engine():
     def __ne__(self, other):
         return not self.__eq__(other)
     db.Model.__ne__ = __ne__
+    def pk(self):
+        return self._get_pk_val()
+    db.Model.pk = property(pk)
 
-    # Make Property more Django-like (needed for serialization)
+    # Make Property more Django-like (needed for serialization and ModelForm)
     db.Property.serialize = True
     db.Property.rel = None
+    db.Property.editable = True
     def attname(self):
         return self.name
     db.Property.attname = property(attname)
     class Relation(object):
         field_name = 'key_name'
     db.ReferenceProperty.rel = Relation
+    def formfield(self):
+        return self.get_form_field()
+    db.Property.formfield = formfield
 
     # Add repr to make debugging a little bit easier
     def __repr__(self):
         d = dict([(k, getattr(self, k)) for k in self.properties()])
-        return '%s(**%s)' % (self.__class__.__name__, repr(d))
+        return u'%s(**%s)' % (self.__class__.__name__, repr(d))
     db.Model.__repr__ = __repr__
+
+    # Add default __str__ and __unicode__ methods
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+    db.Model.__str__ = __str__
+    def __unicode__(self):
+        return unicode(repr(self))
+    db.Model.__unicode__ = __unicode__
 
     # Replace save() method with one that calls put(), so a monkey-patched
     # put() will also work if someone uses save()
@@ -99,7 +114,7 @@ def patch_app_engine():
     # xheaders, and serialization depend on it).
     from django.utils.translation import string_concat
     class _meta(object):
-        many_to_many = []
+        many_to_many = ()
         class pk:
             name = 'key_name'
 
@@ -117,13 +132,18 @@ def patch_app_engine():
                 'verbose_name_plural', string_concat(self.verbose_name, 's'))
             self.abstract = False
             self.model = model
+            self.unique_together = ()
 
         def __str__(self):
             return '%s.%s' % (self.app_label, self.module_name)
 
         @property
         def local_fields(self):
-            return self.model.properties().values()
+            return tuple(self.model.properties().values())
+
+        @property
+        def fields(self):
+            return self.local_fields
 
     # Register models with Django
     old_init = db.PropertiedClass.__init__
@@ -193,14 +213,6 @@ def log_exception(*args, **kwargs):
 def patch_django():
     # Most patches are part of the django-app-engine project:
     # http://www.bitbucket.org/wkornewald/django-app-engine/
-
-    # Replace ModelForm
-    from django import forms
-    from django.forms import models as modelforms
-    from google.appengine.ext.db import djangoforms
-    forms.ModelForm = modelforms.ModelForm = djangoforms.ModelForm
-    forms.ModelFormMetaclass = djangoforms.ModelFormMetaclass
-    modelforms.ModelFormMetaclass = djangoforms.ModelFormMetaclass
 
     fix_app_engine_bugs()
 

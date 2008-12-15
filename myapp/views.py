@@ -13,7 +13,9 @@ def show_person(request, key):
     return object_detail(request, Person.all(), key)
 
 def add_person(request):
-    return create_object(request, Person)
+    return create_object(request, Person,
+        post_save_redirect=reverse('myapp.views.show_person',
+                                   kwargs=dict(key='%(key)s')))
 
 def edit_person(request, key):
     return update_object(request, Person, key)

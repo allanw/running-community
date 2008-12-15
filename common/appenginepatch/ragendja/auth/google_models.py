@@ -16,11 +16,11 @@ class User(GoogleUserTraits):
 
     @property
     def username(self):
-        return self.user.nickname
+        return self.user.nickname()
 
     @property
     def email(self):
-        return self.user.email
+        return self.user.email()
 
     @classmethod
     def create_djangouser_for_user(cls, user):
