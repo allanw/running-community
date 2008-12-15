@@ -1,7 +1,7 @@
 Hi!
 In order to activate your account please visit the following link:
 
-http://{{site}}/accounts/activate/{{activation_key}}/
+http://{{site}}/account/activate/{{activation_key}}/
 
 Thanks,
 Your {{site}} team
