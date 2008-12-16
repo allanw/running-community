@@ -6,7 +6,15 @@
 <a href="{% url myapp.views.list_people %}">Back to listing</a>
 
 <form action="" method="post" enctype="multipart/form-data">
-  {{ form.as_p }}
+  {% ifequal as "table" %}
+    <table>{{ form.as_table }}</table>
+  {% else %}
+    {% ifequal as "ul" %}
+      <ul>{{ form.as_ul }}</ul>
+    {% else %}
+      {{ form.as_p }}
+    {% endifequal %}
+  {% endifequal %}
   {% if object %}
     <input type="submit" name="edit" value="Edit" />
   {% else %}
