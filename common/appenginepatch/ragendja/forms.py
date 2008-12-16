@@ -1,0 +1,245 @@
+from copy import deepcopy
+import re
+
+from django.utils.html import conditional_escape
+from django.utils.encoding import StrAndUnicode, smart_unicode, force_unicode
+from django.utils.safestring import mark_safe
+from django.forms.widgets import flatatt
+from google.appengine.ext import db
+
+class FormWithSets():
+    def __init__(self, form, formsets=()):
+        self.form = form
+        self._meta = form._meta
+        fields = [(name, field) for name, field in form.base_fields.iteritems() if isinstance(field, FormSetField)]
+        formset_dict = dict(formsets)
+        newformsets = []
+        for name, field in fields:
+            if formset_dict.has_key(name):
+                continue
+            newformsets.append((name, {'formset':field.make_formset(form._meta.model)}))
+        self.formsets = formsets + tuple(newformsets)
+
+    def __call__(self, *args,  **kwargs):
+        prefix = kwargs['prefix'] + '-' if 'prefix' in kwargs else ''
+        form = self.form(*args,  **kwargs)
+        formsets = []
+        for name, formset in self.formsets:
+            kwargs['prefix'] = prefix + name
+            instance = formset['formset'](*args,  **kwargs)
+            if form.base_fields.has_key(name):
+                field = form.base_fields[name]
+            else:
+                field = FormSetField(formset['formset'].model, **formset)
+            formsets.append(BoundFormSet(field, instance, name, formset))
+        return FormWithSetsInstance(self, form, formsets)
+
+def pretty_name(name):
+    "Converts 'first_name' to 'First name'"
+    name = name[0].upper() + name[1:]
+    return name.replace('_', ' ')
+
+table_sections_re = re.compile(r'^(.*?)(<tr>.*</tr>)(.*?)$', re.DOTALL)
+table_row_re = re.compile(r'(<tr>(<th><label.*?</label></th>)(<td>.*?</td>)</tr>)', re.DOTALL)
+ul_sections_re = re.compile(r'^(.*?)(<li>.*</li>)(.*?)$', re.DOTALL)
+ul_row_re = re.compile(r'(<li>(<label.*?</label>)(.*?)</li>)', re.DOTALL)
+p_sections_re = re.compile(r'^(.*?)(<p>.*</p>)(.*?)$', re.DOTALL)
+p_row_re = re.compile(r'(<p>(<label.*?</label>)(.*?)</p>)', re.DOTALL)
+label_re = re.compile(r'^(.*)<label for="id_(.*?)">(.*)</label>(.*)$')
+
+class BoundFormSet(StrAndUnicode):
+    def __init__(self, field, formset, name, args):
+        self.field = field
+        self.formset = formset
+        self.name = name
+        self.args = args
+        if self.field.label is None:
+            self.label = pretty_name(name)
+        else:
+            self.label = self.field.label
+        self.auto_id = self.formset.auto_id % self.formset.prefix
+        if args.has_key('attrs'):
+            self.attrs = args['attrs'].copy()
+        else:
+            self.attrs = {}
+
+    def __unicode__(self):
+        """Renders this field as an HTML widget."""
+        return self.as_widget()
+
+    def as_widget(self, attrs=None):
+        """
+        Renders the field by rendering the passed widget, adding any HTML
+        attributes passed as attrs.  If no widget is specified, then the
+        field's default widget will be used.
+        """
+        attrs = attrs or {}
+        auto_id = self.auto_id
+        if auto_id and 'id' not in attrs and not self.args.has_key('id'):
+            attrs['id'] = auto_id
+        try:
+            data = self.formset.as_table()
+            name = self.name
+            return self.render(name, data, attrs=attrs)
+        except Exception, e:
+            import traceback
+            return traceback.format_exc()
+
+    def render(self, name, value, attrs=None):
+        table_sections = table_sections_re.search(value).groups()
+        output = []
+        heads = []
+        current_row = []
+        first_row = True
+        first_head_id = None
+        prefix = 'id_%s-%%s-' % self.formset.prefix
+        for row, head, item in table_row_re.findall(table_sections[1]):
+            if first_row:
+                head_groups = label_re.search(head).groups()
+                if first_head_id == head_groups[1]:
+                    first_row = False
+                    output.append(current_row)
+                    current_row = []
+                else:
+                    heads.append('%s%s%s' % (head_groups[0], head_groups[2], head_groups[3]))
+                    if first_head_id is None:
+                        first_head_id = head_groups[1].replace('-0-','-1-')
+            current_row.append(item)
+            if not first_row and len(current_row) >= len(heads):
+                output.append(current_row)
+                current_row = []
+        if len(current_row) != 0:
+            raise 'Unbalanced render'
+        def last_first(tuple):
+            return tuple[-1:] + tuple[:-1]
+        return mark_safe(u'%s<table%s><tr>%s</tr><tr>%s</tr></table>%s'%(
+            table_sections[0],
+            flatatt(attrs),
+            u''.join(last_first(heads)),
+            u'</tr><tr>'.join((u''.join(last_first(x)) for x in output)), 
+            table_sections[2]))
+
+class FormWithSetsInstance():
+    def __init__(self, master, form, formsets):
+        self.master = master
+        self.form = form
+        self.formsets = formsets
+
+    def __unicode__(self):
+        return self.as_table()
+    
+    def is_valid(self):
+        result = self.form.is_valid()
+        for bf in self.formsets:
+            result = bf.formset.is_valid() and result
+        return result
+    
+    def save(self, *args,  **kwargs):
+        obj = self.form.save(*args,  **kwargs)
+        for bf in self.formsets:
+            bf.formset.save(*args,  **kwargs)
+        return obj
+
+    def _html_output(self, form_as, normal_row, help_text_html, sections_re, row_re):
+        formsets = {}
+        for bf in self.formsets:
+            if bf.label:
+                label = conditional_escape(force_unicode(bf.label))
+                # Only add the suffix if the label does not end in
+                # punctuation.
+                if self.form.label_suffix:
+                    if label[-1] not in ':?.!':
+                        label += self.form.label_suffix
+                label = label or ''
+            else:
+                label = ''
+            if bf.field.help_text:
+                help_text = help_text_html % force_unicode(bf.field.help_text)
+            else:
+                help_text = u''
+            formsets[bf.name] = normal_row % {'label': force_unicode(label), 'field': unicode(bf), 'help_text': help_text}
+
+        try:
+            output = []
+            data = form_as()
+            section_search = sections_re.search(data)
+            if not section_search:
+                output.append(data)
+            else:
+                section_groups = section_search.groups()
+                for row, head, item in row_re.findall(section_groups[1]):
+                    head_search = label_re.search(head)
+                    if head_search:
+                        id = head_search.groups()[1]
+                        if formsets.has_key(id):
+                            row = formsets[id]
+                            del formsets[id]
+                    output.append(row)
+
+            for row in formsets.values():
+                output.append(row)
+
+            return mark_safe(u'\n'.join(output))
+        except Exception,e:
+            import traceback
+            return traceback.format_exc()
+
+    def as_table(self):
+        "Returns this form rendered as HTML <tr>s -- excluding the <table></table>."
+        return self._html_output(self.form.as_table,  u'<tr><th>%(label)s</th><td>%(help_text)s%(field)s</td></tr>', u'<br />%s', table_sections_re, table_row_re)
+
+    def as_ul(self):
+        "Returns this form rendered as HTML <li>s -- excluding the <ul></ul>."
+        return self._html_output(self.form.as_ul,  u'<li>%(label)s %(help_text)s%(field)s</li>', u' %s', ul_sections_re, ul_row_re)
+
+    def as_p(self):
+        "Returns this form rendered as HTML <p>s."
+        return self._html_output(self.form.as_p,  u'<p>%(label)s %(help_text)s</p>%(field)s', u' %s', p_sections_re, p_row_re)
+
+    def full_clean(self):
+        self.form.full_clean()
+        for bf in self.formsets:
+            bf.formset.full_clean()
+
+    def has_changed(self):
+        result = self.form.has_changed()
+        for bf in self.formsets:
+            result = bf.formset.has_changed() or result
+        return result
+
+    def is_multipart(self):
+        result = self.form.is_multipart()
+        for bf in self.formsets:
+            result = bf.formset.is_multipart() or result
+        return result
+
+from django.forms.fields import Field
+from django.forms.widgets import Widget
+from django.forms.models import inlineformset_factory
+
+class FormSetWidget(Widget):
+
+    def __init__(self, field, attrs=None):
+        super(FormSetWidget, self).__init__(attrs)
+        self.field = field
+
+    def render(self, name, value, attrs=None):
+        if value is None: value = 'FormWithSets decorator required to render %s FormSet' % self.field.model.__name__
+        value = force_unicode(value)
+        final_attrs = self.build_attrs(attrs, name=name)
+        return mark_safe(conditional_escape(value))
+
+class FormSetField(Field):
+
+    def __init__(self, model, widget=FormSetWidget, label=None, initial=None,
+                 help_text=None, error_messages=None, show_hidden_initial=False, 
+                 formset_factory=inlineformset_factory, *args,  **kwargs):
+        widget = widget(self)
+        super(FormSetField, self).__init__(required=False, widget=widget, label=label, initial=initial, help_text=help_text, error_messages=error_messages, show_hidden_initial=show_hidden_initial)
+        self.model = model
+        self.formset_factory = formset_factory
+        self.args = args
+        self.kwargs = kwargs
+
+    def make_formset(self, parent_model):
+        return self.formset_factory(parent_model, self.model, *self.args, **self.kwargs)

@@ -50,7 +50,7 @@ def object_list_to_table(headings, dict_list):
         (11, 12, 13),
     ]
     """
-    return [headings] + [tuple([getattr(row, heading, None)
+    return [headings] + [tuple([getattr_by_path(row, heading, None)
                                 for heading in headings])
                          for row in dict_list]
 

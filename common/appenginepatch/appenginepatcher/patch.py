@@ -84,7 +84,7 @@ def patch_app_engine():
         return self.name
     db.Property.attname = property(attname)
     class Relation(object):
-        field_name = 'key_name'
+        field_name = 'key'
     db.ReferenceProperty.rel = Relation
     def formfield(self):
         return self.get_form_field()
@@ -92,7 +92,9 @@ def patch_app_engine():
 
     # Add repr to make debugging a little bit easier
     def __repr__(self):
-        d = dict([(k, getattr(self, k)) for k in self._meta.fields])
+        d = dict([(k.name, getattr(self, k.name)) for k in self._meta.fields])
+        if self.has_key() and self.key().name():
+            d['key_name'] = self.key().name()
         return u'%s(**%s)' % (self.__class__.__name__, repr(d))
     db.Model.__repr__ = __repr__
 
@@ -116,7 +118,7 @@ def patch_app_engine():
     class _meta(object):
         many_to_many = ()
         class pk:
-            name = 'key_name'
+            name = 'key'
 
         def __init__(self, model):
             try:
@@ -162,8 +164,6 @@ def patch_app_engine():
     db.PropertiedClass.__init__ = __init__
 
 def fix_app_engine_bugs():
-    #### Now we fix bugs in App Engine
-
     # Fix handling of verbose_name. Google resolves lazy translation objects
     # immedately which of course breaks translation support.
     # http://code.google.com/p/googleappengine/issues/detail?id=583
@@ -207,6 +207,22 @@ def fix_app_engine_bugs():
         defaults.update(kwargs)
         return super(db.UserProperty, self).get_form_field(**defaults)
     db.UserProperty.get_form_field = get_form_field
+
+    # Fix file uploads via BlobProperty
+    def get_form_field(self, **kwargs):
+        defaults = {'form_class': forms.FileField}
+        defaults.update(kwargs)
+        return super(db.BlobProperty, self).get_form_field(**defaults)
+    db.BlobProperty.get_form_field = get_form_field
+    def get_value_for_form(self, instance):
+        return getattr(instance, self.name)
+    db.BlobProperty.get_value_for_form = get_value_for_form
+    from django.core.files.uploadedfile import UploadedFile
+    def make_value_from_form(self, value):
+        if isinstance(value, UploadedFile):
+            return db.Blob(value.read())
+        return super(db.BlobProperty, self).make_value_from_form(value)
+    db.BlobProperty.make_value_from_form = make_value_from_form
 
 def log_exception(*args, **kwargs):
     logging.exception('Exception in request:')
