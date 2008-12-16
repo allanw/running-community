@@ -19,12 +19,6 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'user@localhost'
 SERVER_EMAIL = 'user@localhost'
 
-MIDDLEWARE_CLASSES = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.middleware.common.CommonMiddleware',
-)
-
 GLOBALTAGS = (
     'ragendja.templatetags.ragendjatags',
 )
@@ -33,12 +27,6 @@ LOGIN_REQUIRED_PREFIXES = ()
 NO_LOGIN_REQUIRED_PREFIXES = ()
 
 ROOT_URLCONF = 'urls'
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.auth',
-    'django.core.context_processors.media',
-    'django.core.context_processors.request',
-)
 
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.load_template_source',

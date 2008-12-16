@@ -7,12 +7,22 @@ from settings_pre import *
 #SORT_PROFILE_RESULTS_BY = 'cumulative' # default is 'time'
 #PROFILE_PATTERN = 'ext.db..+\((?:get|get_by_key_name|fetch|count|put)\)'
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.core.context_processors.auth',
+    'django.core.context_processors.media',
+    'django.core.context_processors.request',
+)
+
+MIDDLEWARE_CLASSES = (
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
+)
+
 # Enable I18N and set default language to 'en'
 USE_I18N = True
 LANGUAGE_CODE = 'en'
-MIDDLEWARE_CLASSES += (
-    'django.middleware.locale.LocaleMiddleware',
-)
 GLOBALTAGS += (
     'django.templatetags.i18n',
 )
