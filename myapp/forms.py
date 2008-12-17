@@ -3,8 +3,9 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import UploadedFile
 from django.utils.translation import ugettext_lazy as _
-from myapp.models import File
+from myapp.models import Person, File, Contract
 from ragendja.auth.models import UserTraits
+from ragendja.forms import FormWithSets, FormSetField
 from registration.forms import RegistrationForm, RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 
@@ -91,3 +92,13 @@ class FileForm(forms.ModelForm):
 
     class Meta:
         model = File
+
+#@FormWithSets
+class PersonForm(forms.ModelForm):
+    Files = FormSetField(File, form=FileForm, exclude='content_type')
+    Employers = FormSetField(Contract, fk_name='employee')
+    Employees = FormSetField(Contract, fk_name='employer')
+
+    class Meta:
+        model = Person
+PersonForm=FormWithSets(PersonForm)

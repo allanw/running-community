@@ -6,11 +6,9 @@ from django.views.generic.list_detail import object_list, object_detail
 from django.views.generic.create_update import create_object, delete_object, \
     update_object, get_model_and_form_class
 from mimetypes import guess_type
-from myapp.forms import FileForm
+from myapp.forms import PersonForm
 from myapp.models import Person, Contract, File
 from ragendja.dbutils import get_object_or_404
-from ragendja.forms import FormWithSets
-from ragendja.template import render_to_response, render_to_string
 
 def list_people(request):
     return object_list(request, Person.all(), paginate_by=10)
@@ -24,17 +22,7 @@ def add_person(request):
                                    kwargs=dict(key='%(key)s')))
 
 def edit_person(request, key):
-    model, form = get_model_and_form_class(Person, None)
-    file_formset = inlineformset_factory(model, File, form=FileForm,
-        exclude='content_type')
-    employer_formset = inlineformset_factory(model, Contract,
-        fk_name='employee')
-    employee_formset = inlineformset_factory(model, Contract,
-        fk_name='employer')
-    form = FormWithSets(form, (('Files',{'formset':file_formset}),
-        ('Employers',{'formset':employer_formset}),
-        ('Employees',{'formset':employee_formset})))
-    return update_object(request, model, key,  form_class=form,
+    return update_object(request, object_id=key, form_class=PersonForm,
         extra_context={'as':request.GET.get('as')})
 
 def delete_person(request, key):
