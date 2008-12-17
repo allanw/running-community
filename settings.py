@@ -7,10 +7,15 @@ from settings_pre import *
 #SORT_PROFILE_RESULTS_BY = 'cumulative' # default is 'time'
 #PROFILE_PATTERN = 'ext.db..+\((?:get|get_by_key_name|fetch|count|put)\)'
 
+# Enable I18N and set default language to 'en'
+USE_I18N = True
+LANGUAGE_CODE = 'en'
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
     'django.core.context_processors.media',
     'django.core.context_processors.request',
+    'django.core.context_processors.i18n',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -20,14 +25,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.locale.LocaleMiddleware',
 )
 
-# Enable I18N and set default language to 'en'
-USE_I18N = True
-LANGUAGE_CODE = 'en'
-GLOBALTAGS += (
+GLOBALTAGS = (
+    'ragendja.templatetags.ragendjatags',
     'django.templatetags.i18n',
-)
-TEMPLATE_CONTEXT_PROCESSORS += (
-    'django.core.context_processors.i18n',
 )
 
 # Restrict JS media generation to only the given LOCALE_SITES

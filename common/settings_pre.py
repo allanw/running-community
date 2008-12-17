@@ -19,10 +19,6 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'user@localhost'
 SERVER_EMAIL = 'user@localhost'
 
-GLOBALTAGS = (
-    'ragendja.templatetags.ragendjatags',
-)
-
 LOGIN_REQUIRED_PREFIXES = ()
 NO_LOGIN_REQUIRED_PREFIXES = ()
 

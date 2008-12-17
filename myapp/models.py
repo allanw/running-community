@@ -6,6 +6,7 @@ class Person(db.Model):
     """Basic user profile with personal details."""
     first_name = db.StringProperty(required=True)
     last_name = db.StringProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
 
     def __unicode__(self):
         return '%s %s' % (self.first_name, self.last_name)
