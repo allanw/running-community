@@ -15,9 +15,15 @@ class Person(db.Model):
     def get_absolute_url(self):
         return ('myapp.views.show_person', (), {'key': self.key()})
 
-class Pet(db.Model):
-    owner = db.ReferenceProperty(Person,required=True, collection_name='pet_set')
+class File(db.Model):
+    owner = db.ReferenceProperty(Person,required=True, collection_name='file_set')
     name = db.StringProperty(required=True)
+    file = db.BlobProperty(required=True)
+
+    @permalink
+    def get_absolute_url(self):
+        return ('myapp.views.download_file', (), {'key': self.key(),
+                                                  'name': self.name})
 
 class Contract(db.Model):
     employer = db.ReferenceProperty(Person,required=True, collection_name='employee_contract_set')
