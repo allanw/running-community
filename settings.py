@@ -43,6 +43,8 @@ MEDIA_VERSION = 1
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '1234567890'
 
+LOGIN_URL = '/account/login/'
+LOGOUT_URL = '/account/logout/'
 LOGIN_REDIRECT_URL = '/'
 
 INSTALLED_APPS = (
