@@ -3,22 +3,11 @@
 
 {% block content %}
 <h1>Create person</h1>
-<a href="{% url myapp.views.list_people %}">Back to listing</a> or view as: <a href="?as=p">p</a>, <a href="?as=ul">ul</a>, <a href="?as=table">table</a>
+<a href="{% url myapp.views.list_people %}">Back to listing</a>
 
 <form action="" method="post" enctype="multipart/form-data">
-  {% ifequal as "table" %}
-    <table>{{ form.as_table }}</table>
-  {% else %}
-    {% ifequal as "ul" %}
-      <ul>{{ form.as_ul }}</ul>
-    {% else %}
-      {{ form.as_p }}
-    {% endifequal %}
-  {% endifequal %}
-  {% if object %}
-    <input type="submit" name="edit" value="Edit" />
-  {% else %}
-    <input type="submit" name="create" value="Create" />
-  {% endif %}
+  <table>{{ form.as_table }}</table>
+  <input type="submit"
+    value="{% if object %}Apply changes{% else %}Create{% endif %}" />
 </form>
 {% endblock %}

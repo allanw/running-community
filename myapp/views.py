@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from django.core.urlresolvers import reverse
-from django.forms.models import inlineformset_factory 
 from django.http import HttpResponse, Http404
 from django.views.generic.list_detail import object_list, object_detail
 from django.views.generic.create_update import create_object, delete_object, \
-    update_object, get_model_and_form_class
+    update_object
 from mimetypes import guess_type
 from myapp.forms import PersonForm
-from myapp.models import Person, Contract, File
+from myapp.models import File, Person
 from ragendja.dbutils import get_object_or_404
 
 def list_people(request):
@@ -22,8 +21,7 @@ def add_person(request):
                                    kwargs=dict(key='%(key)s')))
 
 def edit_person(request, key):
-    return update_object(request, object_id=key, form_class=PersonForm,
-        extra_context={'as':request.GET.get('as')})
+    return update_object(request, object_id=key, form_class=PersonForm)
 
 def delete_person(request, key):
     return delete_object(request, Person, object_id=key,
