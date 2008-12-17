@@ -93,12 +93,11 @@ class FileForm(forms.ModelForm):
     class Meta:
         model = File
 
-#@FormWithSets
 class PersonForm(forms.ModelForm):
-    Files = FormSetField(File, form=FileForm, exclude='content_type')
-    Employers = FormSetField(Contract, fk_name='employee')
-    Employees = FormSetField(Contract, fk_name='employer')
+    files = FormSetField(File, form=FileForm, exclude='content_type')
+    employers = FormSetField(Contract, fk_name='employee')
+    employees = FormSetField(Contract, fk_name='employer')
 
     class Meta:
         model = Person
-PersonForm=FormWithSets(PersonForm)
+PersonForm = FormWithSets(PersonForm)
