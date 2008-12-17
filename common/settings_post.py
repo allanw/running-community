@@ -13,8 +13,6 @@ if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
     INSTALLED_APPS += ('locale_overrides',)
 
 # Add start markers, so apps can insert JS/CSS at correct position
-COMBINE_MEDIA.setdefault('combined-%(LANGUAGE_CODE)s.js', ())
-COMBINE_MEDIA.setdefault('combined-%(LANGUAGE_DIR)s.css', ())
 def add_app_media(env, combine, *appmedia):
     COMBINE_MEDIA = env['COMBINE_MEDIA']
     COMBINE_MEDIA.setdefault(combine, ())
