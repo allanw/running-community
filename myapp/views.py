@@ -31,7 +31,7 @@ def edit_person(request, key):
         fk_name='employee')
     employee_formset = inlineformset_factory(model, Contract,
         fk_name='employer')
-    form = FormWithSets(form, (('Pets',{'formset':file_formset}),
+    form = FormWithSets(form, (('Files',{'formset':file_formset}),
         ('Employers',{'formset':employer_formset}),
         ('Employees',{'formset':employee_formset})))
     return update_object(request, model, key,  form_class=form,
