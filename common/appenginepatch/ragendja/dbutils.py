@@ -25,7 +25,10 @@ def get_object_or_404(model, *filters_or_key, **kwargs):
     elif len(filters_or_key) > 1:
         item = get_filtered(model.all(), *filters_or_key).get()
     else:
-        item = model.get(filters_or_key[0])
+        try:
+            item = model.get(filters_or_key[0])
+        except:
+            raise Http404('Object does not exist!')
     if not item:
         raise Http404('Object does not exist!')
     return item
@@ -244,3 +247,12 @@ def to_json_data(model_instance, property_list):
         value = getattr_by_path(value, 'json_data', value)
         json_data[property] = value
     return json_data
+
+def delete_relations(entity, *relations):
+    related = []
+    for relation in relations:
+        items = getattr(entity, relation)
+        if not hasattr(items, '__iter__'):
+            items = (items,)
+        related.extend(items)
+    db.delete(related)

@@ -5,6 +5,8 @@ COMMON_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 PROJECT_DIR = os.path.dirname(COMMON_DIR)
 ZIP_PACKAGES_DIRS = (os.path.join(PROJECT_DIR, 'zip-packages'),
                      os.path.join(COMMON_DIR, 'zip-packages'))
+# Overrides for os.environ
+env_ext = {'DJANGO_SETTINGS_MODULE': 'settings'}
 
 def setup_env(manage_py_env=False):
     """Configures app engine environment for command-line apps."""
@@ -59,17 +61,17 @@ def setup_env(manage_py_env=False):
     print 'Running on app-engine-patch 0.9.3'
 
 def setup_project():
-    from appenginepatcher import on_production_server
-
     # Remove the standard version of Django
     for k in [k for k in sys.modules if k.startswith('django')]:
         del sys.modules[k]
 
-    # We must set this env var *before* importing any part of Django
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+    from appenginepatcher import on_production_server
     if on_production_server:
         # This fixes a pwd import bug for os.path.expanduser()
-        os.environ['HOME'] = PROJECT_DIR
+        global env_ext
+        env_ext['HOME'] = PROJECT_DIR
+
+    os.environ.update(env_ext)
 
     # Add the two parent folders and appenginepatcher's lib folder to sys.path.
     # The current folder has to be added in main.py or setup_env(). This

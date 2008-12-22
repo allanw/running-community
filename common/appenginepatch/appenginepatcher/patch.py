@@ -91,10 +91,13 @@ def patch_app_engine():
     db.Property.formfield = formfield
 
     # Add repr to make debugging a little bit easier
+    from django.utils.datastructures import SortedDict
     def __repr__(self):
-        d = dict([(k.name, getattr(self, k.name)) for k in self._meta.fields])
+        d = SortedDict()
         if self.has_key() and self.key().name():
             d['key_name'] = self.key().name()
+        for k in self._meta.fields:
+            d[k.name] = getattr(self, k.name)
         return u'%s(**%s)' % (self.__class__.__name__, repr(d))
     db.Model.__repr__ = __repr__
 

@@ -1,11 +1,13 @@
 from copy import deepcopy
 import re
 
+from django.utils.datastructures import SortedDict, MultiValueDict
 from django.utils.html import conditional_escape
 from django.utils.encoding import StrAndUnicode, smart_unicode, force_unicode
 from django.utils.safestring import mark_safe
 from django.forms.widgets import flatatt
 from google.appengine.ext import db
+from ragendja.dbutils import transaction
 
 class FormWithSets():
     def __init__(self, form, formsets=()):
@@ -119,6 +121,13 @@ class BoundFormSet(StrAndUnicode):
             u'</tr><tr>'.join((u''.join(last_first(x)) for x in output)), 
             table_sections[2]))
 
+class CachedQuerySet():
+    def __init__(self, get_queryset):
+        self.queryset_results = (x for x in get_queryset())
+
+    def __call__(self):
+        return self.queryset_results
+
 class FormWithSetsInstance():
     def __init__(self, master, form, formsets):
         self.master = master
@@ -135,13 +144,36 @@ class FormWithSetsInstance():
         return result
     
     def save(self, *args,  **kwargs):
-        obj = self.form.save(*args,  **kwargs)
+        def save_forms(forms, obj=None):
+            for form in forms:
+                if not instance and form != self.form:
+                    for row in form.forms:
+                        row.cleaned_data[form.rel_name] = obj
+                form_obj = form.save(*args,  **kwargs)
+                if form == self.form:
+                    obj = form_obj
+            return obj
+
+        instance = self.form.instance
+        grouped = [self.form]
+        ungrouped = []
+        # cache the result of get_queryset so that it doesn't run inside the transaction
         for bf in self.formsets:
-            bf.formset.save(*args,  **kwargs)
+            if bf.formset.rel_name == 'parent':
+                grouped.append(bf.formset)
+            else:
+                ungrouped.append(bf.formset)
+            bf.formset_get_queryset = bf.formset.get_queryset
+            bf.formset.get_queryset = CachedQuerySet(bf.formset_get_queryset)
+        obj = db.run_in_transaction(save_forms, grouped)
+        save_forms(ungrouped, obj)
+        for bf in self.formsets:
+            bf.formset.get_queryset = bf.formset_get_queryset
+            del bf.formset_get_queryset
         return obj
 
     def _html_output(self, form_as, normal_row, help_text_html, sections_re, row_re):
-        formsets = {}
+        formsets = SortedDict()
         for bf in self.formsets:
             if bf.label:
                 label = conditional_escape(force_unicode(bf.label))

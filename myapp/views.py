@@ -4,9 +4,10 @@ from django.http import HttpResponse, Http404
 from django.views.generic.list_detail import object_list, object_detail
 from django.views.generic.create_update import create_object, delete_object, \
     update_object
+from google.appengine.ext import db
 from mimetypes import guess_type
 from myapp.forms import PersonForm
-from myapp.models import File, Person
+from myapp.models import Contract, File, Person
 from ragendja.dbutils import get_object_or_404
 
 def list_people(request):
@@ -16,7 +17,7 @@ def show_person(request, key):
     return object_detail(request, Person.all(), key)
 
 def add_person(request):
-    return create_object(request, Person,
+    return create_object(request, form_class=PersonForm,
         post_save_redirect=reverse('myapp.views.show_person',
                                    kwargs=dict(key='%(key)s')))
 

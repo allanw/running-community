@@ -5,27 +5,18 @@ import os, sys
 current_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path = [current_dir] + sys.path
 
-from aecmd import setup_project
-setup_project()
+import aecmd
+aecmd.setup_project()
 
 from appenginepatcher.patch import patch_all, setup_logging
 patch_all()
-
-# TODO: Remove this and the respective code in real_main() and profile_main()
-# when this App Engine bug is fixed:
-# http://code.google.com/p/googleappengine/issues/detail?id=772
-path_backup = sys.path[:]
-env_ext = {'DJANGO_SETTINGS_MODULE': 'settings'}
-if 'HOME' in os.environ:
-    env_ext['HOME'] = os.environ['HOME']
 
 import django.core.handlers.wsgi
 from google.appengine.ext.webapp import util
 from django.conf import settings
 
 def real_main():
-    sys.path[:] = path_backup
-    os.environ.update(env_ext)
+    os.environ.update(aecmd.env_ext)
     setup_logging()
 
     # Create a Django application for WSGI.
