@@ -23,7 +23,7 @@ class Person(db.Model):
         super(Person, self).delete()
 
 class File(db.Model):
-    owner = db.ReferenceProperty(Person,required=True, collection_name='file_set')
+    owner = db.ReferenceProperty(Person, required=True, collection_name='file_set')
     name = db.StringProperty(required=True)
     file = db.BlobProperty(required=True)
 
@@ -33,7 +33,7 @@ class File(db.Model):
                                                   'name': self.name})
 
 class Contract(db.Model):
-    employer = db.ReferenceProperty(Person,required=True, collection_name='employee_contract_set')
-    employee = db.ReferenceProperty(Person,required=True, collection_name='employer_contract_set')
+    employer = db.ReferenceProperty(Person, required=True, collection_name='employee_contract_set')
+    employee = db.ReferenceProperty(Person, required=True, collection_name='employer_contract_set')
     start_date = db.DateTimeProperty()
     end_date = db.DateTimeProperty()
