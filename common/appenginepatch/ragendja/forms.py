@@ -9,9 +9,12 @@ from django.forms.widgets import flatatt
 from google.appengine.ext import db
 from ragendja.dbutils import transaction
 
-class FormWithSets():
+class FormWithSets(object):
     def __init__(self, form, formsets=()):
         self.form = form
+        setattr(self, '__module__', form.__module__)
+        setattr(self, '__name__', form.__name__ + 'WithSets')
+        setattr(self, '__doc__', form.__doc__)
         self._meta = form._meta
         fields = [(name, field) for name, field in form.base_fields.iteritems() if isinstance(field, FormSetField)]
         formset_dict = dict(formsets)
@@ -28,13 +31,13 @@ class FormWithSets():
         formsets = []
         for name, formset in self.formsets:
             kwargs['prefix'] = prefix + name
-            instance = formset['formset'](*args,  **kwargs)
+            instance = formset['formset'](*args, **kwargs)
             if form.base_fields.has_key(name):
                 field = form.base_fields[name]
             else:
                 field = FormSetField(formset['formset'].model, **formset)
             formsets.append(BoundFormSet(field, instance, name, formset))
-        return FormWithSetsInstance(self, form, formsets)
+        return type(self.__name__ + 'Instance', (FormWithSetsInstance, ), {})(self, form, formsets)
 
 def pretty_name(name):
     "Converts 'first_name' to 'First name'"
@@ -111,7 +114,7 @@ class BoundFormSet(StrAndUnicode):
                 output.append(current_row)
                 current_row = []
         if len(current_row) != 0:
-            raise 'Unbalanced render'
+            raise Exception('Unbalanced render')
         def last_first(tuple):
             return tuple[-1:] + tuple[:-1]
         return mark_safe(u'%s<table%s><tr>%s</tr><tr>%s</tr></table>%s'%(
@@ -121,18 +124,19 @@ class BoundFormSet(StrAndUnicode):
             u'</tr><tr>'.join((u''.join(last_first(x)) for x in output)), 
             table_sections[2]))
 
-class CachedQuerySet():
+class CachedQuerySet(object):
     def __init__(self, get_queryset):
         self.queryset_results = (x for x in get_queryset())
 
     def __call__(self):
         return self.queryset_results
 
-class FormWithSetsInstance():
+class FormWithSetsInstance(object):
     def __init__(self, master, form, formsets):
         self.master = master
         self.form = form
         self.formsets = formsets
+        self.instance = form.instance
 
     def __unicode__(self):
         return self.as_table()
@@ -208,8 +212,9 @@ class FormWithSetsInstance():
                             del formsets[id]
                     output.append(row)
 
-            for row in formsets.values():
-                output.append(row)
+            for name, row in formsets.items():
+                if name in self.form.fields.keyOrder:
+                    output.append(row)
 
             return mark_safe(u'\n'.join(output))
         except Exception,e:
@@ -265,7 +270,7 @@ class FormSetField(Field):
 
     def __init__(self, model, widget=FormSetWidget, label=None, initial=None,
                  help_text=None, error_messages=None, show_hidden_initial=False, 
-                 formset_factory=inlineformset_factory, *args,  **kwargs):
+                 formset_factory=inlineformset_factory, *args, **kwargs):
         widget = widget(self)
         super(FormSetField, self).__init__(required=False, widget=widget, label=label, initial=initial, help_text=help_text, error_messages=error_messages, show_hidden_initial=show_hidden_initial)
         self.model = model

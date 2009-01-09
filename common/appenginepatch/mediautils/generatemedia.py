@@ -114,6 +114,8 @@ def updatemedia(compressed=None):
                 # The hgettext() function just calls gettext() internally, but
                 # it won't get indexed by makemessages.
                 content += '\nwindow.hgettext = function(text) { return gettext(text); };\n'
+                # Add a similar hngettext() function
+                content += 'window.hngettext = function(singular, plural, count) { return ngettext(singular, plural, count); };\n'
                 # Check if content changed, so we don't regenerate the i18n
                 # file unnecessarily.
                 if os.path.exists(filepath):
