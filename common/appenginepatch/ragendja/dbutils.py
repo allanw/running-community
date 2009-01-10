@@ -17,7 +17,7 @@ def get_filtered(data, *filters):
         data.filter(*filter)
     return data
 
-def get_object_or_404(model, *filters_or_key, **kwargs):
+def get_object(model, *filters_or_key, **kwargs):
     if kwargs.get('key_name'):
         item = model.get_by_key_name(kwargs.get('key_name'))
     elif kwargs.get('id'):
@@ -28,7 +28,11 @@ def get_object_or_404(model, *filters_or_key, **kwargs):
         try:
             item = model.get(filters_or_key[0])
         except:
-            raise Http404('Object does not exist!')
+            return None
+    return item
+
+def get_object_or_404(model, *filters_or_key, **kwargs):
+    item = get_object(model, *filters_or_key, **kwargs)
     if not item:
         raise Http404('Object does not exist!')
     return item
@@ -256,3 +260,108 @@ def delete_relations(entity, *relations):
             items = (items,)
         related.extend(items)
     db.delete(related)
+
+class FakeModelProperty(db.Property):
+    data_type = basestring
+
+    def __init__(self, model, *args, **kwargs):
+        self.model = model
+        super(FakeModelProperty, self).__init__(*args, **kwargs)
+
+    def validate(self, value):
+        if isinstance(value, basestring):
+            value = self.make_value_from_datastore(value)
+        if not isinstance(value, self.model):
+            raise db.BadValueError('Value must be of type %s' %
+                                   self.model.__name__)
+        if self.validator is not None:
+            self.validator(value)
+        return value
+
+    def get_value_for_datastore(self, model_instance):
+        fake_model = getattr(model_instance, self.name)
+        return fake_model.get_value_for_datastore()
+
+    def make_value_from_datastore(self, value):
+        return self.model.make_value_from_datastore(value)
+
+    def __set__(self, model_instance, value):
+        if isinstance(value, basestring):
+            value = self.make_value_from_datastore(value)
+        super(FakeModelProperty, self).__set__(model_instance, value)
+
+    @classmethod
+    def get_fake_defaults(self, fake_model, multiple=False, **kwargs):
+        from django import forms
+        choices = tuple([(item.get_value_for_datastore(), unicode(item))
+                         for item in fake_model.all()])
+        form = multiple and forms.MultipleChoiceField or forms.ChoiceField
+        defaults = {'form_class': form, 'choices': choices}
+        defaults.update(kwargs)
+        return defaults
+
+    def get_form_field(self, **kwargs):
+        defaults = FakeModelProperty.get_fake_defaults(self.model, **kwargs)
+        return super(FakeModelProperty, self).get_form_field(**defaults)
+
+class FakeModelListProperty(db.ListProperty):
+    fake_item_type = basestring
+
+    def __init__(self, model, *args, **kwargs):
+        self.model = model
+        super(FakeModelListProperty, self).__init__(
+            self.__class__.fake_item_type, *args, **kwargs)
+
+    def validate(self, value):
+        new_value = []
+        for item in value:
+            if isinstance(item, basestring):
+                item = self.make_value_from_datastore([item])[0]
+            if not isinstance(item, self.model):
+                raise db.BadValueError('Value must be of type %s' %
+                                       self.model.__name__)
+            new_value.append(item)
+        if self.validator is not None:
+            self.validator(new_value)
+        return new_value
+
+    def get_value_for_datastore(self, model_instance):
+        fake_models = getattr(model_instance, self.name)
+        return [fake_model.get_value_for_datastore()
+                for fake_model in fake_models]
+
+    def make_value_from_datastore(self, value):
+        return [self.model.make_value_from_datastore(item)
+                for item in value]
+
+    def get_form_field(self, **kwargs):
+        defaults = FakeModelProperty.get_fake_defaults(self.model,
+            multiple=True, **kwargs)
+        defaults['required'] = False
+        return super(FakeModelListProperty, self).get_form_field(**defaults)
+
+class KeyListProperty(db.ListProperty):
+    def __init__(self, model, *args, **kwargs):
+        self.model = model
+        super(KeyListProperty, self).__init__(db.Key, *args, **kwargs)
+
+    def validate(self, value):
+        new_value = []
+        for item in value:
+            if isinstance(item, basestring):
+                item = db.Key(item)
+            if isinstance(item, self.model):
+                item = item.key()
+            if not isinstance(item, db.Key):
+                raise db.BadValueError('Value must be a key or of type %s' %
+                                       self.model.__name__)
+            new_value.append(item)
+        return super(KeyListProperty, self).validate(new_value)
+
+    def get_form_field(self, **kwargs):
+        from django import forms
+        defaults = {'form_class': forms.ModelMultipleChoiceField,
+                    'queryset': self.model.all(),
+                    'required': False}
+        defaults.update(kwargs)
+        return super(KeyListProperty, self).get_form_field(**defaults)

@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 from settings_pre import *
 
+# Increase this when you update your media on the production site, so users
+# don't have to refresh their cache. By setting this your MEDIA_URL
+# automatically becomes /media/MEDIA_VERSION/
+MEDIA_VERSION = 1
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = '1234567890'
+
 #ENABLE_PROFILER = True
 #ONLY_FORCED_PROFILE = True
 #PROFILE_PERCENTAGE = 25
@@ -35,14 +43,6 @@ GLOBALTAGS = (
 #    LANGUAGE_CODE,
 #)
 
-# Increase this when you update your media on the production site, so users
-# don't have to refresh their cache. By setting this your MEDIA_URL
-# automatically becomes /media/MEDIA_VERSION/
-MEDIA_VERSION = 1
-
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = '1234567890'
-
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'
 LOGIN_REDIRECT_URL = '/'
@@ -50,6 +50,8 @@ LOGIN_REDIRECT_URL = '/'
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.sessions',
+    'django.contrib.admin',
+    'django_aep_export.admin',
     'django.contrib.webdesign',
     'appenginepatcher',
     'myapp',

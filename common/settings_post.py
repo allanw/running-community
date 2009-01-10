@@ -2,6 +2,7 @@
 from settings import *
 
 MEDIA_URL = '/media/%d/' % MEDIA_VERSION
+ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin/'
 
 TEMPLATE_DEBUG = DEBUG
 MANAGERS = ADMINS
@@ -21,6 +22,19 @@ def add_app_media(env, combine, *appmedia):
     index = list(COMBINE_MEDIA[combine]).index('!START!')
     COMBINE_MEDIA[combine] = COMBINE_MEDIA[combine][:index] + \
         appmedia + COMBINE_MEDIA[combine][index:]
+
+def add_uncombined_app_media(env, app):
+    """Copy all media files directly"""
+    path = os.path.join(
+        os.path.dirname(__import__(app, {}, {}, ['']).__file__), 'media')
+    app = app.rsplit('.', 1)[-1]
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(('.css', '.js')):
+                base = os.path.join(root, file)[len(path):].replace(os.sep,
+                    '/').lstrip('/')
+                target = '%s/%s' % (app, base)
+                add_app_media(env, target, target)
 
 # Import app-specific settings
 for app in INSTALLED_APPS:

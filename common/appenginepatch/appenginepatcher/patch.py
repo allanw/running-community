@@ -349,11 +349,14 @@ def patch_app_engine():
 
     # Add _meta to Model, so porting code becomes easier (generic views,
     # xheaders, and serialization depend on it).
+    from django.conf import settings
+    from django.utils.encoding import force_unicode, smart_str
     from django.utils.translation import string_concat
     class _meta(object):
         many_to_many = ()
         class pk:
             name = 'key'
+            attname = 'pk'
 
         def __init__(self, model):
             try:
@@ -367,12 +370,38 @@ def patch_app_engine():
                 'verbose_name', get_verbose_name(self.object_name))
             self.verbose_name_plural = getattr(Meta,
                 'verbose_name_plural', string_concat(self.verbose_name, 's'))
+            self.ordering = getattr(Meta, 'ordering', ())
             self.abstract = False
             self.model = model
             self.unique_together = ()
+            self.installed = model.__module__.rsplit('.', 1)[0] in settings.INSTALLED_APPS
+            self.permissions = getattr(Meta, 'permissions', ()) + (
+                ('add_%s' % self.object_name.lower(),
+                    string_concat('Add ', self.verbose_name)),
+                ('change_%s' % self.object_name.lower(),
+                    string_concat('Change ', self.verbose_name)),
+                ('delete_%s' % self.object_name.lower(),
+                    string_concat('Delete ', self.verbose_name)),
+            )
+
+        def __repr__(self):
+            return '<Options for %s>' % self.object_name
 
         def __str__(self):
-            return '%s.%s' % (self.app_label, self.module_name)
+            return "%s.%s" % (smart_str(self.app_label), smart_str(self.module_name))
+
+        @property
+        def verbose_name_raw(self):
+            """
+            There are a few places where the untranslated verbose name is needed
+            (so that we get the same value regardless of currently active
+            locale).
+            """
+            lang = get_language()
+            deactivate_all()
+            raw = force_unicode(self.verbose_name)
+            activate(lang)
+            return raw
 
         @property
         def local_fields(self):
@@ -382,6 +411,28 @@ def patch_app_engine():
         @property
         def fields(self):
             return self.local_fields
+
+        def get_field(self, name, many_to_many=True):
+            """
+            Returns the requested field by name. Raises FieldDoesNotExist on error.
+            """
+            from django.db.models.fields import FieldDoesNotExist
+            for f in self.fields:
+                if f.name == name:
+                    return f
+            raise FieldDoesNotExist, '%s has no field named %r' % (self.object_name, name)
+
+        def get_add_permission(self):
+            return 'add_%s' % self.object_name.lower()
+
+        def get_change_permission(self):
+            return 'change_%s' % self.object_name.lower()
+
+        def get_delete_permission(self):
+            return 'delete_%s' % self.object_name.lower()
+
+        def get_ordered_objects(self):
+            return []
 
     # Register models with Django
     old_init = db.PropertiedClass.__init__
@@ -398,7 +449,6 @@ def patch_app_engine():
         register_models(cls._meta.app_label, cls)
     db.PropertiedClass.__init__ = __init__
 
-    from django.conf import settings
     if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
         @classmethod
         def kind(cls):
@@ -440,12 +490,30 @@ def fix_app_engine_bugs():
         return super(db.EmailProperty, self).get_form_field(**defaults)
     db.EmailProperty.get_form_field = get_form_field
 
+    # Fix DateTimeProperty, so it returns a property even for auto_now and
+    # auto_now_add.
+    def get_form_field(self, **kwargs):
+        defaults = {'form_class': forms.DateTimeField}
+        defaults.update(kwargs)
+        return super(db.DateTimeProperty, self).get_form_field(**defaults)
+    db.DateTimeProperty.get_form_field = get_form_field
+    def get_form_field(self, **kwargs):
+        defaults = {'form_class': forms.DateField}
+        defaults.update(kwargs)
+        return super(db.DateProperty, self).get_form_field(**defaults)
+    db.DateProperty.get_form_field = get_form_field
+    def get_form_field(self, **kwargs):
+        defaults = {'form_class': forms.TimeField}
+        defaults.update(kwargs)
+        return super(db.TimeProperty, self).get_form_field(**defaults)
+    db.TimeProperty.get_form_field = get_form_field
+
     # Fix default value of UserProperty (Google resolves the user too early)
     # http://code.google.com/p/googleappengine/issues/detail?id=879
     from django.utils.functional import lazy
     from google.appengine.api import users
     def get_form_field(self, **kwargs):
-        defaults = {'initial': lazy(users.GetCurrentUser, users.User)}
+        defaults = {'initial': lazy(users.GetCurrentUser, users.User)()}
         defaults.update(kwargs)
         return super(db.UserProperty, self).get_form_field(**defaults)
     db.UserProperty.get_form_field = get_form_field
@@ -477,11 +545,12 @@ def patch_django():
 
     # Fix translation support if we're in a zip file. We change the path
     # of the django.conf module, so the translation code tries to load
-    # Django's translations from the common/django-locale/locale folder.
+    # Django's translations from common/django_aep_export/django-locale/locale
     from django import conf
     from aecmd import COMMON_DIR
     if '.zip' + os.sep in conf.__file__:
-        conf.__file__ = os.path.join(COMMON_DIR, 'django-locale', 'fake.py')
+        conf.__file__ = os.path.join(COMMON_DIR, 'django_aep_export',
+                                     'django-locale', 'fake.py')
 
     # Patch login_required if using Google Accounts
     from django.conf import settings
