@@ -51,7 +51,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.admin',
-    'django_aep_export.admin',
+    'django_aep_export.admin_media',
     'django.contrib.webdesign',
     'appenginepatcher',
     'myapp',

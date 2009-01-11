@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import UploadedFile
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ugettext as __
 from myapp.models import Person, File, Contract
 from ragendja.auth.models import UserTraits
 from ragendja.forms import FormWithSets, FormSetField
@@ -26,10 +26,9 @@ class UserRegistrationForm(forms.ModelForm):
         
         """
         user = User.get_by_key_name("key_"+self.cleaned_data['username'].lower())
-        if user:
-            raise forms.ValidationError(_(u'This username is already taken. Please choose another.'))
+        if user and user.is_active:
+            raise forms.ValidationError(__(u'This username is already taken. Please choose another.'))
         return self.cleaned_data['username']
-        
 
     def clean(self):
         """
@@ -41,7 +40,7 @@ class UserRegistrationForm(forms.ModelForm):
         """
         if 'password1' in self.cleaned_data and 'password2' in self.cleaned_data:
             if self.cleaned_data['password1'] != self.cleaned_data['password2']:
-                raise forms.ValidationError(_(u'You must type the same password each time'))
+                raise forms.ValidationError(__(u'You must type the same password each time'))
         return self.cleaned_data
     
     def save(self, domain_override=""):
@@ -56,12 +55,13 @@ class UserRegistrationForm(forms.ModelForm):
         supplied.
         
         """
-        new_user = RegistrationProfile.objects.create_inactive_user(username=self.cleaned_data['username'],
-                                                                    password=self.cleaned_data['password1'],
-                                                                    email=self.cleaned_data['email'],
-                                                                    domain_override=domain_override,
-                                                                    )
-        return new_user
+        new_user = RegistrationProfile.objects.create_inactive_user(
+            username=self.cleaned_data['username'],
+            password=self.cleaned_data['password1'],
+            email=self.cleaned_data['email'],
+            domain_override=domain_override)
+        self.instance = new_user
+        return super(UserRegistrationForm, self).save()
 
     def clean_email(self):
         """
@@ -70,8 +70,9 @@ class UserRegistrationForm(forms.ModelForm):
         
         """
         email = self.cleaned_data['email'].lower()
-        if User.all().filter('email =', email).count(1):
-            raise forms.ValidationError(_(u'This email address is already in use. Please supply a different email address.'))
+        if User.all().filter('email =', email).filter(
+                'is_active =', True).count(1):
+            raise forms.ValidationError(__(u'This email address is already in use. Please supply a different email address.'))
         return email
 
     class Meta:
