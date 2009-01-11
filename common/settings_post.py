@@ -2,7 +2,7 @@
 from settings import *
 
 MEDIA_URL = '/media/%d/' % MEDIA_VERSION
-ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin/'
+ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin_media/'
 
 TEMPLATE_DEBUG = DEBUG
 MANAGERS = ADMINS
@@ -12,6 +12,11 @@ if os.path.exists(os.path.join(COMMON_DIR, 'locale_overrides_common')):
     INSTALLED_APPS += ('locale_overrides_common',)
 if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
     INSTALLED_APPS += ('locale_overrides',)
+
+# Always add Django templates (exported from zip)
+INSTALLED_APPS += (
+    'django_aep_export.django_templates',
+)
 
 # Add start markers, so apps can insert JS/CSS at correct position
 def add_app_media(env, combine, *appmedia):

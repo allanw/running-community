@@ -173,11 +173,11 @@ def updatemedia(compressed=None):
         for file in files:
             path = os.path.join(root, file)
             pretty_name = path[len(MEDIA_ROOT)+1:].replace(os.sep, '/')
+            app_path = ''
             if '/' in pretty_name:
                 app, filepath = pretty_name.split('/', 1)
-                app_path = os.path.join(media_dirs[app], filepath)
-            else:
-                app_path = ''
+                if app in media_dirs:
+                    app_path = os.path.join(media_dirs[app], filepath)
             # JavaScript and css files are never copied automatically.
             # You must combine them.
             if pretty_name not in COMBINE_MEDIA.keys() and (

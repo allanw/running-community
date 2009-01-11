@@ -310,16 +310,32 @@ def patch_app_engine():
 
     # Make Property more Django-like (needed for serialization and ModelForm)
     db.Property.serialize = True
-    db.Property.rel = None
     db.Property.editable = True
+
     def attname(self):
         return self.name
     db.Property.attname = property(attname)
-    class Relation(object):
+
+    class Rel(object):
         field_name = 'key'
-    db.ReferenceProperty.rel = Relation
-    def formfield(self):
-        return self.get_form_field()
+
+        def __init__(self, property):
+            self.property = property
+            self.to = property.reference_class
+
+    class RelProperty(object):
+        def __get__(self, property, cls):
+            if property is None:
+                return self
+            if not hasattr(property, 'reference_class'):
+                return None
+            if not hasattr(property, '_rel_cache'):
+                property._rel_cache = Rel(property)
+            return property._rel_cache
+    db.Property.rel = RelProperty()
+
+    def formfield(self, **kwargs):
+        return self.get_form_field(**kwargs)
     db.Property.formfield = formfield
 
     # Add repr to make debugging a little bit easier
@@ -351,7 +367,8 @@ def patch_app_engine():
     # xheaders, and serialization depend on it).
     from django.conf import settings
     from django.utils.encoding import force_unicode, smart_str
-    from django.utils.translation import string_concat
+    from django.utils.translation import string_concat, get_language, \
+        activate, deactivate_all
     class _meta(object):
         many_to_many = ()
         class pk:
@@ -375,14 +392,19 @@ def patch_app_engine():
             self.model = model
             self.unique_together = ()
             self.installed = model.__module__.rsplit('.', 1)[0] in settings.INSTALLED_APPS
-            self.permissions = getattr(Meta, 'permissions', ()) + (
-                ('add_%s' % self.object_name.lower(),
-                    string_concat('Add ', self.verbose_name)),
-                ('change_%s' % self.object_name.lower(),
-                    string_concat('Change ', self.verbose_name)),
-                ('delete_%s' % self.object_name.lower(),
-                    string_concat('Delete ', self.verbose_name)),
-            )
+            self.permissions = getattr(Meta, 'permissions', ())
+            # XXX: Don't display auth permissions for all extra user models
+            if self.app_label != 'auth' or \
+                    not (self.object_name.endswith('Traits') or
+                         self.object_name != 'EmailUser'):
+                self.permissions += (
+                    ('add_%s' % self.object_name.lower(),
+                        string_concat('Can add ', self.verbose_name)),
+                    ('change_%s' % self.object_name.lower(),
+                        string_concat('Can change ', self.verbose_name)),
+                    ('delete_%s' % self.object_name.lower(),
+                        string_concat('Can delete ', self.verbose_name)),
+                )
 
         def __repr__(self):
             return '<Options for %s>' % self.object_name
@@ -449,11 +471,13 @@ def patch_app_engine():
         register_models(cls._meta.app_label, cls)
     db.PropertiedClass.__init__ = __init__
 
-    if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
-        @classmethod
-        def kind(cls):
+    old_kind = db.Model.kind
+    @classmethod
+    def kind(cls):
+        if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
             return '%s_%s' % (cls._meta.app_label, cls._meta.object_name)
-        db.Model.kind = kind
+        return old_kind(cls)
+    db.Model.kind = kind
 
 def fix_app_engine_bugs():
     # Fix handling of verbose_name. Google resolves lazy translation objects
