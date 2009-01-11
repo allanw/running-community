@@ -12,11 +12,11 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(
 GENERATED_MEDIA = os.path.join(PROJECT_ROOT, '_generated_media')
 MEDIA_ROOT = os.path.join(GENERATED_MEDIA, MEDIA_VERSION)
 
-def generatemedia(compressed):
+def generatemedia(compressed, silent=False):
     if os.path.exists(MEDIA_ROOT):
         shutil.rmtree(MEDIA_ROOT)
 
-    updatemedia(compressed)
+    updatemedia(compressed, silent=silent)
 
 def copy_file(path, generated):
     dirpath = os.path.dirname(generated)
@@ -24,13 +24,15 @@ def copy_file(path, generated):
         os.makedirs(dirpath)
     shutil.copyfile(path, generated)
 
-def compress_file(path):
+def compress_file(path, silent=False):
     if path.endswith(('.css', '.js')):
-        print '  Running yuicompressor...',
+        if not silent:
+            print '  Running yuicompressor...',
         try:
             cmd = Popen(['java', '-jar', compressor, path, '-o', path])
             if cmd.wait() == 0:
-                print '%d bytes' % os.path.getsize(path)
+                if not silent:
+                    print '%d bytes' % os.path.getsize(path)
             else:
                 print 'Failed!'
         except:
@@ -38,7 +40,7 @@ def compress_file(path):
                 "Please make sure that you have installed Java "
                 "and that it's in your PATH.")
 
-def updatemedia(compressed=None):
+def updatemedia(compressed=None, silent=False):
     if 'mediautils' not in settings.INSTALLED_APPS:
         return
 
@@ -124,9 +126,11 @@ def updatemedia(compressed=None):
                     fp.close()
                     if old_content == content:
                         continue
-                    print 'Updating i18n file %s...' % filename
+                    if not silent:
+                        print 'Updating i18n file %s...' % filename
                 else:
-                    print 'Generating i18n file %s...' % filename
+                    if not silent:
+                        print 'Generating i18n file %s...' % filename
                 fp = codecs.open(filepath, 'w', 'utf-8')
                 fp.write(content)
                 fp.close()
@@ -144,7 +148,8 @@ def updatemedia(compressed=None):
     if os.path.exists(i18n_dir):
         for filename in os.listdir(i18n_dir):
             if filename not in COMBINE_MEDIA:
-                print 'Removing i18n file %s...' % filename
+                if not silent:
+                    print 'Removing i18n file %s...' % filename
                 os.remove(os.path.join(i18n_dir, filename))
         if not os.listdir(i18n_dir):
             os.rmdir(i18n_dir)
@@ -183,7 +188,8 @@ def updatemedia(compressed=None):
             if pretty_name not in COMBINE_MEDIA.keys() and (
                     file.endswith(('.js', '.css') or not app_path or
                     not os.path.exists(app_path))):
-                print 'Removing %s...' % pretty_name
+                if not silent:
+                    print 'Removing %s...' % pretty_name
                 os.remove(path)
 
     # First, copy all media files that don't need to be combined.
@@ -201,10 +207,11 @@ def updatemedia(compressed=None):
                 if (path in tocombine or (os.path.exists(generated) and
                         getmtime(generated) >= getmtime(path))):
                     continue
-                print 'Copying %s...' % base.replace(os.sep, '/')
+                if not silent:
+                    print 'Copying %s...' % base.replace(os.sep, '/')
                 copy_file(path, generated)
                 if compressed:
-                    compress_file(generated)
+                    compress_file(generated, silent=silent)
 
     # Now combine media files.
     for combined, group in COMBINE_MEDIA.items():
@@ -215,7 +222,8 @@ def updatemedia(compressed=None):
             if not [1 for name in group if os.path.exists(name) and
                                            getmtime(name) >= combined_mtime]:
                 continue
-        print 'Combining %s...' % combined
+        if not silent:
+            print 'Combining %s...' % combined
         dirpath = os.path.dirname(path)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)

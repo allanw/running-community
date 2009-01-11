@@ -26,4 +26,5 @@ if __name__ == '__main__':
         import sys
         from mediautils.generatemedia import generatemedia
         if len(sys.argv) >= 2 and sys.argv[1] == 'update':
-            generatemedia(False)
+            print 'Regenerating uncompressed media'
+            generatemedia(False, silent=True)
