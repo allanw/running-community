@@ -306,7 +306,7 @@ def patch_app_engine():
     db.Model.__ne__ = __ne__
     def pk(self):
         return self._get_pk_val()
-    db.Model.pk = property(pk)
+    db.Model.id = db.Model.pk = property(pk)
 
     # Make Property more Django-like (needed for serialization and ModelForm)
     db.Property.serialize = True
@@ -471,15 +471,41 @@ def patch_app_engine():
         register_models(cls._meta.app_label, cls)
     db.PropertiedClass.__init__ = __init__
 
-    old_kind = db.Model.kind
     @classmethod
     def kind(cls):
         if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
             return '%s_%s' % (cls._meta.app_label, cls._meta.object_name)
-        return old_kind(cls)
+        return cls._meta.object_name
     db.Model.kind = kind
 
+    # This has to come last because we load Django here
+    from django.db.models.fields import BLANK_CHOICE_DASH
+    def get_choices(self, include_blank=True, blank_choice=BLANK_CHOICE_DASH):
+        first_choice = include_blank and blank_choice or []
+        if self.choices:
+            return first_choice + list(self.choices)
+        if self.rel:
+            return first_choice + [(obj.pk, unicode(obj))
+                                   for obj in self.rel.to.all().fetch(301)]
+        return first_choice
+    db.Property.get_choices = get_choices
+
 def fix_app_engine_bugs():
+    # When passing an invalid string key App Engine raises an exception.
+    # That's annoying because users could enter an URL with an invalid key
+    # and cause an exception which results in a mail being sent to the admins.
+    # Well, of course this would only happen if you forget to check for an
+    # exception, but why should we check, at all?
+    old_get = db.get
+    def get(keys):
+        if isinstance(keys, basestring):
+            try:
+                keys = db.Key(keys)
+            except:
+                return None
+        return old_get(keys)
+    db.get = get
+
     # Fix handling of verbose_name. Google resolves lazy translation objects
     # immedately which of course breaks translation support.
     # http://code.google.com/p/googleappengine/issues/detail?id=583

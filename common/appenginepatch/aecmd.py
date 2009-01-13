@@ -92,8 +92,6 @@ def setup_project():
     except ImportError:
         pass
 
-    # Don't yet patch httplib if we'll execute a dev_appserver because
-    # urlfetch would get reloaded and then use the wrong httplib.
     this_folder = os.path.abspath(os.path.dirname(__file__))
     EXTRA_PATHS.append(os.path.join(this_folder, 'appenginepatcher', 'lib'))
 

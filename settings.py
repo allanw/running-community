@@ -31,6 +31,9 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    'ragendja.sites.dynamicsite.DynamicSiteIDMiddleware',
+    'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
+    'django.contrib.redirects.middleware.RedirectFallbackMiddleware',
 )
 
 GLOBALTAGS = (
@@ -53,6 +56,9 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django_aep_export.admin_media',
     'django.contrib.webdesign',
+    'django.contrib.flatpages',
+    'django.contrib.redirects',
+    'django.contrib.sites',
     'appenginepatcher',
     'myapp',
     'registration',
