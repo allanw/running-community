@@ -3,7 +3,10 @@ from appenginepatcher import on_production_server
 import os
 DEBUG = not on_production_server
 
+# The MEDIA_VERSION will get integrated via %d
 MEDIA_URL = '/media/%d/'
+# The MEDIA_URL will get integrated via %s
+ADMIN_MEDIA_PREFIX = '%sadmin_media/'
 
 ADMINS = ()
 

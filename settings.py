@@ -54,7 +54,6 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.admin',
-    'django_aep_export.admin_media',
     'django.contrib.webdesign',
     'django.contrib.flatpages',
     'django.contrib.redirects',

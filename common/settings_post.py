@@ -2,7 +2,7 @@
 from settings import *
 
 MEDIA_URL = MEDIA_URL % MEDIA_VERSION
-ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin_media/'
+ADMIN_MEDIA_PREFIX = ADMIN_MEDIA_PREFIX % MEDIA_URL
 
 TEMPLATE_DEBUG = DEBUG
 MANAGERS = ADMINS
@@ -12,6 +12,10 @@ if os.path.exists(os.path.join(COMMON_DIR, 'locale_overrides_common')):
     INSTALLED_APPS += ('locale_overrides_common',)
 if os.path.exists(os.path.join(PROJECT_DIR, 'locale_overrides')):
     INSTALLED_APPS += ('locale_overrides',)
+
+# Add admin interface media files if necessary
+if 'django.contrib.admin' in INSTALLED_APPS:
+    INSTALLED_APPS += ('django_aep_export.admin_media',)
 
 # Always add Django templates (exported from zip)
 INSTALLED_APPS += (
