@@ -17,17 +17,23 @@ class DynamicSiteIDMiddleware(object):
     """Sets settings.SIDE_ID based on request's domain"""
     def process_request(self, request):
         # Ignore port
-        host = request.get_host().split(':')[0]
+        domain = request.get_host().split(':')[0]
 
         # Try exact domain and fall back to with/without 'www.'
-        site = Site.all().filter('domain =', host).get()
+        site = Site.all().filter('domain =', domain).get()
         if not site:
-            if host.startswith('www.'):
-                host = host[4:]
+            if domain.startswith('www.'):
+                fallback_domain = domain[4:]
             else:
-                host = 'www.' + host
-            site = Site.all().filter('domain =', host).get()
+                fallback_domain = 'www.' + domain
+            site = Site.all().filter('domain =', fallback_domain).get()
 
+        # Add site if it doesn't exist
+        if not site and getattr(settings, 'CREATE_SITES_AUTOMATICALLY', True):
+            site = Site(domain=domain, name=domain)
+            site.put()
+
+        # Set SITE_ID for this thread/request
         if site:
             _site_id.value = str(site.key())
         else:

@@ -232,7 +232,14 @@ class KeyReferenceProperty(object):
         for destination, source in self.integrate.items():
             integrate_value = None
             if value:
-                integrate_value = getattr_by_path(value, source)
+                try:
+                    property = getattr(value.__class__, source)
+                except:
+                    property = None
+                if property and isinstance(property, db.ReferenceProperty):
+                    integrate_value = property.get_value_for_datastore(value)
+                else:
+                    integrate_value = getattr_by_path(value, source)
             setattr(instance, destination, integrate_value)
 
 # Don't use this, yet. It's not part of the official API! Might become a
@@ -288,7 +295,14 @@ class ReferenceProperty(db.ReferenceProperty):
         for destination, source in self.integrate.items():
             integrate_value = None
             if value:
-                integrate_value = getattr_by_path(value, source)
+                try:
+                    property = getattr(value.__class__, source)
+                except:
+                    property = None
+                if property and isinstance(property, db.ReferenceProperty):
+                    integrate_value = property.get_value_for_datastore(value)
+                else:
+                    integrate_value = getattr_by_path(value, source)
             setattr(instance, destination, integrate_value)
 
 def to_json_data(model_instance, property_list):
