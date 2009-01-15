@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from settings import *
 
-MEDIA_URL = '/media/%d/' % MEDIA_VERSION
+MEDIA_URL = MEDIA_URL % MEDIA_VERSION
 ADMIN_MEDIA_PREFIX = MEDIA_URL + 'admin_media/'
 
 TEMPLATE_DEBUG = DEBUG

@@ -294,7 +294,10 @@ def patch_app_engine():
 
     # Add a few Model methods that are needed for serialization and ModelForm
     def _get_pk_val(self):
-        return unicode(self.key())
+        if self.has_key():
+            return unicode(self.key())
+        else:
+            return None
     db.Model._get_pk_val = _get_pk_val
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -360,7 +363,7 @@ def patch_app_engine():
     # Replace save() method with one that calls put(), so a monkey-patched
     # put() will also work if someone uses save()
     def save(self):
-        return self.put()
+        self.put()
     db.Model.save = save
 
     # Add _meta to Model, so porting code becomes easier (generic views,

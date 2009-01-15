@@ -3,6 +3,8 @@ from appenginepatcher import on_production_server
 import os
 DEBUG = not on_production_server
 
+MEDIA_URL = '/media/%d/'
+
 ADMINS = ()
 
 DATABASE_ENGINE = 'appengine'

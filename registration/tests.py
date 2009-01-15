@@ -272,6 +272,9 @@ class RegistrationViewTests(RegistrationTestCase):
         
         """
         # Invalid data fails.
+        alice = User.all().filter('username =', 'alice').get()
+        alice.is_active = True
+        alice.put()
         response = self.client.post(reverse('registration_register'),
                                     data={ 'username': 'alice', # Will fail on username uniqueness.
                                            'email': 'foo@example.com',

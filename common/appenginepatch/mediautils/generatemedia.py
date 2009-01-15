@@ -6,7 +6,7 @@ from os.path import getmtime
 import os, codecs, shutil
 
 MEDIA_VERSION = unicode(settings.MEDIA_VERSION)
-compressor = os.path.join(os.path.dirname(__file__), 'yuicompressor.jar')
+compressor = os.path.join(os.path.dirname(__file__), '.yuicompressor.jar')
 PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.dirname(__file__)))))
 GENERATED_MEDIA = os.path.join(PROJECT_ROOT, '_generated_media')

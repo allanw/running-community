@@ -1,4 +1,51 @@
 # -*- coding: utf-8 -*-
+_FORBIDDEN_LAZY_FUNCS = ('__init__', '__new__', '__getattr__', '__hasattr__',
+                         '__setattr__', '__dict__')
+
+def resolve_lazy(func):
+    def resolver(self, *args, **kwargs):
+        if func.__name__ in ('__getattr__', '__hasattr__', '__setattr__') and \
+                (args[0].startswith('_LaZy_') or self._LaZy_initializing):
+            if func.__name__ == '__getattr__':
+                try:
+                    return self.__dict__[args[0]]
+                except KeyError:
+                    raise AttributeError(args[0])
+            elif func.__name__ == '__hasattr__':
+                return args[0] in self.__dict__[args[0]]
+            elif func.__name__ == '__setattr__':
+                self.__dict__[args[0]] = args[1]
+                return
+        if self._LaZy_func:
+            self._LaZy_delegate = self._LaZy_func()
+            self._LaZy_func = None
+        return func(self, *args, **kwargs)
+    return resolver
+
+class LazyObject(object):
+    def __init__(self, func, *delegates):
+        self._LaZy_initializing = True
+        self._LaZy_func = func
+        self._LaZy_delegate = None
+        for delegate in delegates:
+            for key, value in delegate.__dict__.items():
+                if key.startswith('__') and key.endswith('__') and \
+                        key not in _FORBIDDEN_LAZY_FUNCS:
+                    setattr(self, key, resolve_lazy(value))
+        self._LaZy_initializing = False
+
+    @resolve_lazy
+    def __getattr__(self, attr):
+        return getattr(self._LaZy_delegate, attr)
+
+    @resolve_lazy
+    def __hasattr__(self, attr):
+        return hasattr(self._LaZy_delegate, attr)
+
+    @resolve_lazy
+    def __setattr__(self, attr, value):
+        return setattr(self._LaZy_delegate, attr, value)
+
 def getattr_by_path(obj, attr, *default):
     """Like getattr(), but can go down a hierarchy like 'attr.subattr'"""
     value = obj

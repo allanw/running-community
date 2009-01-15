@@ -12,7 +12,4 @@ class User(GoogleUserTraits):
 
     @classmethod
     def create_djangouser_for_user(cls, user):
-        django_user = cls(user=user, email=user.email(),
-                          username=user.nickname())
-        django_user.put()
-        return django_user
+        return cls(user=user, email=user.email(), username=user.nickname())

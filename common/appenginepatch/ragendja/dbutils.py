@@ -2,7 +2,7 @@
 from django.http import Http404
 from django.utils import simplejson
 from google.appengine.ext import db
-from ragendja.pyutils import getattr_by_path
+from ragendja.pyutils import getattr_by_path, LazyObject
 from random import choice
 from string import ascii_letters, digits
 
@@ -98,8 +98,6 @@ def prefetch_references(object_list, references):
     Dereferences the given (Key)ReferenceProperty fields of a list of objects
     in as few get() calls as possible.
     """
-    # TODO: There is no safe way to work with the cache of a ReferenceProperty,
-    # so we don't yet support checking the cache.
     if object_list and references:
         if not isinstance(references, (list, tuple)):
             references = (references,)
@@ -123,10 +121,13 @@ def prefetch_references(object_list, references):
                         continue
                     key = getattr(item, property.target_name)
                     if property.use_key_name and key:
-                        key = str(db.Key.from_path(target_model.kind(), key))
+                        key = db.Key.from_path(target_model.kind(), key)
                 else:
-                    key = str(property.get_value_for_datastore(item))
+                    if ReferenceProperty.is_resolved(property, item):
+                        continue
+                    key = property.get_value_for_datastore(item)
                 if key:
+                    key = str(key)
                     prefetch[key] = prefetch.get(key, ()) + ((item, name),)
         for target_model, prefetch in targets.values():
             prefetched_items = target_model.get(prefetch.keys())
@@ -143,6 +144,7 @@ def prefetch_references(object_list, references):
                     setattr(item, reference, prefetched)
     return object_list
 
+# Deprecated due to uglyness! :)
 class KeyReferenceProperty(object):
     """
     Creates a cached accessor for a model referenced by a string property
@@ -226,6 +228,62 @@ class KeyReferenceProperty(object):
             key = str(value.key())
         setattr(instance, '_ref_cache_for_' + self.target_name, value)
         setattr(instance, self.target_name, key)
+
+        for destination, source in self.integrate.items():
+            integrate_value = None
+            if value:
+                integrate_value = getattr_by_path(value, source)
+            setattr(instance, destination, integrate_value)
+
+# Don't use this, yet. It's not part of the official API! Might become a
+# contribution to Google.
+class ReferenceProperty(db.ReferenceProperty):
+    def __init__(self, reference_class, integrate={}, **kwargs):
+        self.integrate = integrate
+        super(ReferenceProperty, self).__init__(reference_class, **kwargs)
+
+    @classmethod
+    def is_resolved(cls, property, instance):
+        try:
+            if not hasattr(instance, property.__id_attr_name()) or \
+                    not getattr(model_instance, self.__id_attr_name()):
+                return True
+            return bool(getattr(instance, property.__resolved_attr_name()))
+        except:
+            import logging
+            logging.warn('ReferenceProperty implementation changed! Update '
+                         'ragendja.dbutils.ReferenceProperty.is_resolved!')
+        return False
+
+    def __get__(self, instance, cls):
+        resolve = lambda: super(ReferenceProperty, self).__get__(instance, cls)
+        if not instance or ReferenceProperty.is_resolved(self, instance):
+            return resolve()
+
+        key = getattr(cls, self.name).get_value_for_datastore(instance)
+        if not key:
+            return None
+
+        class LazyModel(LazyObject):
+            def key(self):
+                return key
+
+            def is_saved(self):
+                return True
+
+            def has_key(self):
+                return True
+
+        return LazyModel(resolve, self.reference_class)
+
+    def __set__(self, instance, value):
+        if isinstance(value, LazyObject):
+            if value._LaZy_func and self.integrate:
+                value = value._LaZy_func()
+            else:
+                value = value.key()
+
+        super(ReferenceProperty, self).__set__(instance, value)
 
         for destination, source in self.integrate.items():
             integrate_value = None

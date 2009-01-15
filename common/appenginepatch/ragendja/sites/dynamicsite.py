@@ -14,9 +14,12 @@ class SiteID(object):
 settings.__class__.SITE_ID = SiteID()
 
 class DynamicSiteIDMiddleware(object):
+    """Sets settings.SIDE_ID based on request's domain"""
     def process_request(self, request):
+        # Ignore port
         host = request.get_host().split(':')[0]
 
+        # Try exact domain and fall back to with/without 'www.'
         site = Site.all().filter('domain =', host).get()
         if not site:
             if host.startswith('www.'):
