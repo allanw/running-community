@@ -43,8 +43,11 @@ def get_object_or_404(model, *filters_or_key, **kwargs):
         raise Http404('Object does not exist!')
     return item
 
+def get_object_list(model, *filters):
+    return get_filtered(model.all(), *filters)
+
 def get_list_or_404(model, *filters):
-    data = get_filtered(model.all(), *filters)
+    data = get_object_list(model, *filters)
     if not data.count(1):
         raise Http404('No objects found!')
     return data
@@ -468,8 +471,16 @@ class KeyListProperty(db.ListProperty):
     you get a ModelMultipleChoiceField (as if it were a ManyToManyField)."""
 
     def __init__(self, reference_class, *args, **kwargs):
-        self.reference_class = reference_class
+        self._reference_class = reference_class
         super(KeyListProperty, self).__init__(db.Key, *args, **kwargs)
+
+    @property
+    def reference_class(self):
+        if isinstance(self._reference_class, basestring):
+            from django.db import models
+            self._reference_class = models.get_model(
+                *self._reference_class.split('_', 1))
+        return self._reference_class
 
     def validate(self, value):
         new_value = []
