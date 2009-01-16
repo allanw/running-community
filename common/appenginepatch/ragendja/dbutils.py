@@ -2,7 +2,7 @@
 from django.http import Http404
 from django.utils import simplejson
 from google.appengine.ext import db
-from ragendja.pyutils import getattr_by_path, LazyObject
+from ragendja.pyutils import getattr_by_path
 from random import choice
 from string import ascii_letters, digits
 
@@ -20,16 +20,21 @@ def get_filtered(data, *filters):
 
 def get_object(model, *filters_or_key, **kwargs):
     if kwargs.get('key_name'):
-        item = model.get_by_key_name(kwargs.get('key_name'))
+        item = model.get_by_key_name(kwargs.get('key_name'),
+            parent=kwargs.get('parent'))
     elif kwargs.get('id'):
-        item = model.get_by_id(kwargs.get('id'))
+        item = model.get_by_id(kwargs.get('id'),
+            parent=kwargs.get('parent'))
     elif len(filters_or_key) > 1:
         item = get_filtered(model.all(), *filters_or_key).get()
     else:
+        error = None
+        if isinstance(filters_or_key[0], (tuple, list)):
+            error = [None for index in range(len(filters_or_key[0]))]
         try:
             item = model.get(filters_or_key[0])
-        except:
-            return None
+        except (db.BadKeyError, db.KindError):
+            return error
     return item
 
 def get_object_or_404(model, *filters_or_key, **kwargs):
@@ -187,8 +192,15 @@ class KeyReferenceProperty(object):
                         for destination, source in myself.integrate.items():
                             integrate_value = None
                             if kwargs[my_name]:
-                                integrate_value = getattr_by_path(
-                                    kwargs[my_name], source)
+                                try:
+                                    property = getattr(self.__class__, source)
+                                except:
+                                    property = None
+                                if property and isinstance(property, db.ReferenceProperty):
+                                    integrate_value = property.get_value_for_datastore(self)
+                                else:
+                                    integrate_value = getattr_by_path(
+                                        kwargs[my_name], source)
                             kwargs[destination] = integrate_value
                     old_init(self, *args, **kwargs)
                 model_class.__init__ = __init__
@@ -242,8 +254,7 @@ class KeyReferenceProperty(object):
                     integrate_value = getattr_by_path(value, source)
             setattr(instance, destination, integrate_value)
 
-# Don't use this, yet. It's not part of the official API! Might become a
-# contribution to Google.
+# Don't use this, yet. It's not part of the official API!
 class ReferenceProperty(db.ReferenceProperty):
     def __init__(self, reference_class, integrate={}, **kwargs):
         self.integrate = integrate
@@ -262,34 +273,7 @@ class ReferenceProperty(db.ReferenceProperty):
                          'ragendja.dbutils.ReferenceProperty.is_resolved!')
         return False
 
-    def __get__(self, instance, cls):
-        resolve = lambda: super(ReferenceProperty, self).__get__(instance, cls)
-        if not instance or ReferenceProperty.is_resolved(self, instance):
-            return resolve()
-
-        key = getattr(cls, self.name).get_value_for_datastore(instance)
-        if not key:
-            return None
-
-        class LazyModel(LazyObject):
-            def key(self):
-                return key
-
-            def is_saved(self):
-                return True
-
-            def has_key(self):
-                return True
-
-        return LazyModel(resolve, self.reference_class)
-
     def __set__(self, instance, value):
-        if isinstance(value, LazyObject):
-            if value._LaZy_func and self.integrate:
-                value = value._LaZy_func()
-            else:
-                value = value.key()
-
         super(ReferenceProperty, self).__set__(instance, value)
 
         for destination, source in self.integrate.items():
@@ -320,6 +304,21 @@ def to_json_data(model_instance, property_list):
         return [to_json_data(item, property_list) for item in model_instance]
     json_data = {}
     for property in property_list:
+        property_instance = None
+        try:
+            property_instance = getattr(model_instance.__class__,
+                property.split('.', 1)[0])
+        except:
+            pass
+        key_access = property[len(property.split('.', 1)[0]):]
+        if isinstance(property_instance, db.ReferenceProperty) and \
+                key_access in ('.key', '.key.name'):
+            key = property_instance.get_value_for_datastore(model_instance)
+            if key_access == '.key':
+                json_data[property] = str(key)
+            else:
+                json_data[property] = key.name()
+            continue
         value = getattr_by_path(model_instance, property, None)
         value = getattr_by_path(value, 'json_data', value)
         json_data[property] = value

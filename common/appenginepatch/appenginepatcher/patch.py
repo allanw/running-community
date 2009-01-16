@@ -347,8 +347,11 @@ def patch_app_engine():
         d = SortedDict()
         if self.has_key() and self.key().name():
             d['key_name'] = self.key().name()
-        for k in self._meta.fields:
-            d[k.name] = getattr(self, k.name)
+        for field in self._meta.fields:
+            try:
+                d[field.name] = getattr(self, field.name)
+            except:
+                d[field.name] = field.get_value_for_datastore(self)
         return u'%s(**%s)' % (self.__class__.__name__, repr(d))
     db.Model.__repr__ = __repr__
 
@@ -494,21 +497,6 @@ def patch_app_engine():
     db.Property.get_choices = get_choices
 
 def fix_app_engine_bugs():
-    # When passing an invalid string key App Engine raises an exception.
-    # That's annoying because users could enter an URL with an invalid key
-    # and cause an exception which results in a mail being sent to the admins.
-    # Well, of course this would only happen if you forget to check for an
-    # exception, but why should we check, at all?
-    old_get = db.get
-    def get(keys):
-        if isinstance(keys, basestring):
-            try:
-                keys = db.Key(keys)
-            except:
-                return None
-        return old_get(keys)
-    db.get = get
-
     # Fix handling of verbose_name. Google resolves lazy translation objects
     # immedately which of course breaks translation support.
     # http://code.google.com/p/googleappengine/issues/detail?id=583
@@ -545,6 +533,7 @@ def fix_app_engine_bugs():
 
     # Fix DateTimeProperty, so it returns a property even for auto_now and
     # auto_now_add.
+    # http://code.google.com/p/googleappengine/issues/detail?id=994
     def get_form_field(self, **kwargs):
         defaults = {'form_class': forms.DateTimeField}
         defaults.update(kwargs)
@@ -586,6 +575,19 @@ def fix_app_engine_bugs():
             return db.Blob(value.read())
         return super(db.BlobProperty, self).make_value_from_form(value)
     db.BlobProperty.make_value_from_form = make_value_from_form
+
+    # Optimize ReferenceProperty, so it returns the key directly
+    # http://code.google.com/p/googleappengine/issues/detail?id=993
+    def get_value_for_form(self, instance):
+        return self.get_value_for_datastore(instance)
+    db.ReferenceProperty.get_value_for_form = get_value_for_form
+    # Use our ModelChoiceField instead of Google's
+    def get_form_field(self, **kwargs):
+        defaults = {'form_class': forms.ModelChoiceField,
+                    'queryset': self.reference_class.all()}
+        defaults.update(kwargs)
+        return super(db.ReferenceProperty, self).get_form_field(**defaults)
+    db.ReferenceProperty.get_form_field = get_form_field
 
 def log_exception(*args, **kwargs):
     logging.exception('Exception in request:')

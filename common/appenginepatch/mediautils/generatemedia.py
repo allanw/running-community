@@ -72,9 +72,7 @@ def updatemedia(compressed=None, silent=False):
     if not settings.USE_I18N:
         LANGUAGES = (settings.LANGUAGE_CODE,)
     else:
-        LANGUAGES = getattr(settings, 'LOCALE_SITES', ())
-        if not LANGUAGES:
-            LANGUAGES = [code for code, _ in settings.LANGUAGES]
+        LANGUAGES = [code for code, _ in settings.LANGUAGES]
 
     media_dirs = get_app_dirs('media')
     media_dirs['global'] = os.path.join(PROJECT_ROOT, 'media')
