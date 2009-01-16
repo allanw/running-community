@@ -479,7 +479,7 @@ class KeyListProperty(db.ListProperty):
         if isinstance(self._reference_class, basestring):
             from django.db import models
             self._reference_class = models.get_model(
-                *self._reference_class.split('_', 1))
+                *self._reference_class.split('.', 1))
         return self._reference_class
 
     def validate(self, value):
