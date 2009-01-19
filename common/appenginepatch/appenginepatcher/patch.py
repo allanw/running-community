@@ -172,7 +172,7 @@ def patch_app_engine():
             # XXX: Don't display auth permissions for all extra user models
             if self.app_label != 'auth' or \
                     not (self.object_name.endswith('Traits') or
-                         self.object_name != 'EmailUser'):
+                         self.object_name == 'EmailUser'):
                 self.permissions += (
                     ('add_%s' % self.object_name.lower(),
                         string_concat('Can add ', self.verbose_name)),
