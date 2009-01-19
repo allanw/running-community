@@ -10,9 +10,9 @@ class GoogleUserTraits(EmailUserTraits):
         django_user = cls.all().filter('user =', user).get()
         if not django_user:
             django_user = cls.create_djangouser_for_user(user)
+            django_user.is_active = True
             if getattr(settings, 'AUTH_ADMIN_USER_AS_SUPERUSER', True) and \
                     users.is_current_user_admin():
-                django_user.is_active = True
                 django_user.is_staff = True
                 django_user.is_superuser = True
             django_user.put()

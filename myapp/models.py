@@ -5,9 +5,8 @@ from ragendja.dbutils import delete_relations
 
 class Person(db.Model):
     """Basic user profile with personal details."""
-    first_name = db.StringProperty(required=True)
-    last_name = db.StringProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
+    first_name = db.StringProperty(required=True, default='First')
+    last_name = db.StringProperty(required=True, default='Last')
 
     def __unicode__(self):
         return '%s %s' % (self.first_name, self.last_name)
@@ -31,6 +30,9 @@ class File(db.Model):
     def get_absolute_url(self):
         return ('myapp.views.download_file', (), {'key': self.key(),
                                                   'name': self.name})
+
+    def __unicode__(self):
+        return u'File: %s' % self.name
 
 class Contract(db.Model):
     employer = db.ReferenceProperty(Person, required=True, collection_name='employee_contract_set')

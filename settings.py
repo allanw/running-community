@@ -18,6 +18,11 @@ SECRET_KEY = '1234567890'
 # Enable I18N and set default language to 'en'
 USE_I18N = True
 LANGUAGE_CODE = 'en'
+# Restrict supported languages (and JS media generation)
+#LANGUAGES = (
+#    ('de', 'German'),
+#    ('en', 'English'),
+#)
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
@@ -40,11 +45,6 @@ GLOBALTAGS = (
     'ragendja.templatetags.ragendjatags',
     'django.templatetags.i18n',
 )
-
-# Restrict JS media generation to only the given LOCALE_SITES
-#LOCALE_SITES = (
-#    LANGUAGE_CODE,
-#)
 
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'

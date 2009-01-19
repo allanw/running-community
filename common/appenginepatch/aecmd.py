@@ -34,17 +34,22 @@ def setup_env(manage_py_env=False):
                 break
         if SDK_PATH is None:
             # The SDK could not be found in any known location.
-            sys.stderr.write("The Google App Engine SDK could not be found!\n")
-            sys.stderr.write("See README for installation instructions.\n")
+            sys.stderr.write('The Google App Engine SDK could not be found!\n'
+                             'Visit http://code.google.com/p/app-engine-patch/'
+                             ' for installation instructions.\n')
             sys.exit(1)
         # Add the SDK and the libraries within it to the system path.
-        EXTRA_PATHS = [
-            SDK_PATH,
-            os.path.join(SDK_PATH, 'lib', 'antlr3'),
-            os.path.join(SDK_PATH, 'lib', 'webob'),
-            os.path.join(SDK_PATH, 'lib', 'yaml', 'lib'),
-            os.path.join(SDK_PATH, 'lib', 'django'),
-        ]
+        EXTRA_PATHS = [SDK_PATH]
+        lib = os.path.join(SDK_PATH, 'lib')
+        # Automatically add all packages in the SDK's lib folder:
+        for dir in os.listdir(lib):
+            path = os.path.join(lib, dir)
+            # Package can be under 'lib/<pkg>/<pkg>/' or 'lib/<pkg>/lib/<pkg>/'
+            detect = (os.path.join(path, dir), os.path.join(path, 'lib', dir))
+            for path in detect:
+                if os.path.isdir(path):
+                    EXTRA_PATHS.append(os.path.dirname(path))
+                    break
         sys.path = EXTRA_PATHS + sys.path
         from google.appengine.api import apiproxy_stub_map
 
@@ -59,7 +64,7 @@ def setup_env(manage_py_env=False):
     if not manage_py_env:
         return
 
-    print 'Running on app-engine-patch 0.9.3'
+    print 'Running on app-engine-patch 1.0dev'
 
 def setup_project():
     # Remove the standard version of Django

@@ -1,4 +1,10 @@
 from django.contrib import admin
-from myapp.models import Person
+from myapp.models import Person, File
 
-admin.site.register(Person)
+class FileInline(admin.TabularInline):
+    model = File
+
+class PersonAdmin(admin.ModelAdmin):
+    inlines = (FileInline,)
+
+admin.site.register(Person, PersonAdmin)
