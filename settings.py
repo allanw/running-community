@@ -18,7 +18,8 @@ SECRET_KEY = '1234567890'
 # Enable I18N and set default language to 'en'
 USE_I18N = True
 LANGUAGE_CODE = 'en'
-# Restrict supported languages (and JS media generation)
+
+#Restrict supported languages (and JS media generation)
 #LANGUAGES = (
 #    ('de', 'German'),
 #    ('en', 'English'),
@@ -33,13 +34,24 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # Django authentication
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Google authentication
+    #'ragendja.auth.middleware.GoogleAuthenticationMiddleware',
+    # Hybrid Django/Google authentication
+    #'ragendja.auth.middleware.HybridAuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'ragendja.sites.dynamicsite.DynamicSiteIDMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
     'django.contrib.redirects.middleware.RedirectFallbackMiddleware',
 )
+
+# Google authentication
+#AUTH_USER_MODULE = 'ragendja.auth.google_models'
+#AUTH_ADMIN_MODULE = 'ragendja.auth.google_admin'
+# Hybrid Django/Google authentication
+#AUTH_USER_MODULE = 'ragendja.auth.hybrid_models'
 
 GLOBALTAGS = (
     'ragendja.templatetags.ragendjatags',

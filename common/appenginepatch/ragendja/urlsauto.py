@@ -8,6 +8,8 @@ from django.conf import settings
 urlpatterns = patterns('')
 
 for app in settings.INSTALLED_APPS:
+    if app == 'ragendja':
+        continue
     try:
         urlpatterns += __import__(app + '.urlsauto', {}, {}, ['']).urlpatterns
     except ImportError:

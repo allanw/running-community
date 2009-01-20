@@ -1,17 +1,10 @@
 from django.conf import settings
 from django.contrib.sites.models import Site
-from django.utils._threading_local import local
+from ragendja.dbutils import db_create
+from ragendja.pyutils import make_tls_property
 
 _default_site_id = getattr(settings, 'SITE_ID', None)
-_site_id = local()
-
-class SiteID(object):
-    def __get__(self, settings, cls):
-        if not _site_id.value:
-            raise ValueError('SITE_ID not defined in settings')
-        return _site_id.value
-
-settings.__class__.SITE_ID = SiteID()
+SITE_ID = settings.__class__.SITE_ID = make_tls_property()
 
 class DynamicSiteIDMiddleware(object):
     """Sets settings.SIDE_ID based on request's domain"""
@@ -30,11 +23,11 @@ class DynamicSiteIDMiddleware(object):
 
         # Add site if it doesn't exist
         if not site and getattr(settings, 'CREATE_SITES_AUTOMATICALLY', True):
-            site = Site(domain=domain, name=domain)
+            site = db_create(Site, domain=domain, name=domain)
             site.put()
 
         # Set SITE_ID for this thread/request
         if site:
-            _site_id.value = str(site.key())
+            SITE_ID.value = str(site.key())
         else:
-            _site_id.value = _default_site_id
+            SITE_ID.value = _default_site_id

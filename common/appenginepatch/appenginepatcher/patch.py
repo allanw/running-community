@@ -266,6 +266,8 @@ def patch_app_engine():
         return first_choice
     db.Property.get_choices = get_choices
 
+    fix_app_engine_bugs()
+
 def fix_app_engine_bugs():
     # Fix handling of verbose_name. Google resolves lazy translation objects
     # immedately which of course breaks translation support.
@@ -361,41 +363,9 @@ def fix_app_engine_bugs():
         return super(db.ReferenceProperty, self).get_form_field(**defaults)
     db.ReferenceProperty.get_form_field = get_form_field
 
-def log_exception(*args, **kwargs):
-    logging.exception('Exception in request:')
-
 def patch_django():
     # Most patches are part of the django-app-engine project:
     # http://www.bitbucket.org/wkornewald/django-app-engine/
-
-    fix_app_engine_bugs()
-
-    # Fix translation support if we're in a zip file. We change the path
-    # of the django.conf module, so the translation code tries to load
-    # Django's translations from common/django_aep_export/django-locale/locale
-    from django import conf
-    from aecmd import COMMON_DIR
-    if '.zip' + os.sep in conf.__file__:
-        conf.__file__ = os.path.join(COMMON_DIR, 'django_aep_export',
-                                     'django-locale', 'fake.py')
-
-    # Patch login_required if using Google Accounts
-    from django.conf import settings
-    if 'ragendja.auth.middleware.GoogleAuthenticationMiddleware' in \
-            settings.MIDDLEWARE_CLASSES:
-        from ragendja.auth.decorators import google_login_required, \
-            redirect_to_google_login
-        from django.contrib.auth import decorators, views
-        decorators.login_required = google_login_required
-        views.redirect_to_login = redirect_to_google_login
-
-    # Log errors.
-    from django.core import signals
-    signals.got_request_exception.connect(log_exception)
-
-    # Unregister the rollback event handler.
-    import django.db
-    signals.got_request_exception.disconnect(django.db._rollback_on_exception)
 
     # Activate ragendja's GLOBALTAGS support (automatically done on import)
     from ragendja import template
