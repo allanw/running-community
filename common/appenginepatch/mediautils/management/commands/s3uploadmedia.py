@@ -63,10 +63,8 @@ def s3uploadmedia(production):
                 headers['Content-Type'] = mimetypes.guess_type(file)[0]
             if production:
                 key.set_contents_from_file(fp, headers=headers,
-                    cb=submit_cb, num_cb=10)
+                    cb=submit_cb, num_cb=10, policy='public-read')
             fp.close()
-            if production:
-                key.set_acl('public-read')
 
     if not production:
         print '=============================================='

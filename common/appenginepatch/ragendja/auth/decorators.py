@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.contrib.auth.decorators import login_required
-from ragendja.auth.views import redirect_to_google_login
+from ragendja.auth.views import google_redirect_to_login
 from ragendja.template import render_to_response
 
 def staff_only(view):
@@ -18,5 +18,5 @@ def google_login_required(function):
     def login_required_wrapper(request, *args, **kw):
         if request.user.is_authenticated():
             return function(request, *args, **kw)
-        return redirect_to_google_login(request.get_full_path())
+        return google_redirect_to_login(request.get_full_path())
     return login_required_wrapper
