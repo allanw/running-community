@@ -84,6 +84,7 @@ def patch_app_engine():
     # Make Property more Django-like (needed for serialization and ModelForm)
     db.Property.serialize = True
     db.Property.editable = True
+    db.Property.help_text = ''
 
     def attname(self):
         return self.name
