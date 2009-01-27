@@ -28,8 +28,7 @@ def patch_python():
     if have_appserver:
         from appenginepatcher import imp
         sys.modules['imp'] = imp
-
-    from appenginepatcher import socketpatch
+        from appenginepatcher import socketpatch
 
     if have_appserver:
         def unlink(_):
