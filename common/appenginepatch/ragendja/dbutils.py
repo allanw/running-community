@@ -458,6 +458,12 @@ class FakeModelListProperty(db.ListProperty):
         return [self.model.make_value_from_datastore(item)
                 for item in value]
 
+    def get_value_for_form(self, instance):
+        return self.get_value_for_datastore(instance)
+
+    def make_value_from_form(self, value):
+        return self.make_value_from_datastore(value)
+
     def get_form_field(self, **kwargs):
         defaults = FakeModelProperty.get_fake_defaults(self.model,
             multiple=True, **kwargs)
