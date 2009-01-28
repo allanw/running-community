@@ -6,5 +6,6 @@ class FileInline(admin.TabularInline):
 
 class PersonAdmin(admin.ModelAdmin):
     inlines = (FileInline,)
+    list_display = ('first_name', 'last_name')
 
 admin.site.register(Person, PersonAdmin)

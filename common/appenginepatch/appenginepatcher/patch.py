@@ -84,6 +84,13 @@ def patch_app_engine():
     db.Property.serialize = True
     db.Property.editable = True
     db.Property.help_text = ''
+    def _get_verbose_name(self):
+        if not self._verbose_name:
+            self._verbose_name = self.name.replace('_', ' ')
+        return self._verbose_name
+    def _set_verbose_name(self, verbose_name):
+        self._verbose_name = verbose_name
+    db.Property.verbose_name = property(_get_verbose_name, _set_verbose_name)
 
     def attname(self):
         return self.name
@@ -278,10 +285,7 @@ def fix_app_engine_bugs():
     from google.appengine.ext.db import djangoforms
     def get_form_field(self, form_class=forms.CharField, **kwargs):
         defaults = {'required': self.required}
-        if self.verbose_name:
-            defaults['label'] = capfirst(self.verbose_name)
-        else:
-            defaults['label'] = self.name.capitalize().replace('_', ' ')
+        defaults['label'] = capfirst(self.verbose_name)
         if self.choices:
             choices = []
             if not self.required or (self.default is None and
