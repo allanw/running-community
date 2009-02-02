@@ -36,7 +36,7 @@ class ModelMetaTest(TestCase):
         self.assertEqual(TestC._meta.verbose_name_plural, 'test cs')
         self.assertFalse(TestC._meta.abstract)
 
-        self.assertTrue(PolyA._meta.abstract)
+        self.assertFalse(PolyA._meta.abstract)
         self.assertFalse(PolyB._meta.abstract)
 
 # Test signals

@@ -101,11 +101,13 @@ def patch_app_engine():
     db.Property.attname = property(attname)
 
     class Rel(object):
-        field_name = 'key'
-
         def __init__(self, property):
+            self.field_name = 'key'
             self.property = property
             self.to = property.reference_class
+            self.multiple = True
+            self.parent_link = False
+            self.related_name = getattr(property, 'collection_name', None)
 
     class RelProperty(object):
         def __get__(self, property, cls):
@@ -162,16 +164,17 @@ def patch_app_engine():
             name = 'key'
             attname = 'pk'
 
-        def __init__(self, model):
+        def __init__(self, model, bases):
             try:
                 self.app_label = model.__module__.split('.')[-2]
             except IndexError:
                 raise ValueError('Django expects models (here: %s.%s) to be defined in their own apps!' % (model.__module__, model.__name__))
+            self.parents = [b for b in bases if isinstance(b, db.Model)]
             self.object_name = model.__name__
             self.module_name = self.object_name.lower()
             self.verbose_name = get_verbose_name(self.object_name)
             self.ordering = ()
-            self.abstract = polymodel.PolyModel in model.__bases__
+            self.abstract = False
             self.model = model
             self.unique_together = ()
             self.installed = model.__module__.rsplit('.', 1)[0] in \
@@ -234,12 +237,19 @@ def patch_app_engine():
 
         @property
         def local_fields(self):
-            return tuple(sorted(self.model.properties().values(),
+            return tuple(sorted([p for p in self.model.properties().values()
+                                 if not isinstance(p, db.ListProperty)],
+                                key=lambda prop: prop.creation_counter))
+
+        @property
+        def local_many_to_many(self):
+            return tuple(sorted([p for p in self.model.properties().values()
+                                 if isinstance(p, db.ListProperty)],
                                 key=lambda prop: prop.creation_counter))
 
         @property
         def fields(self):
-            return self.local_fields
+            return self.local_fields + self.local_many_to_many
 
         def get_field(self, name, many_to_many=True):
             """
@@ -250,6 +260,86 @@ def patch_app_engine():
                 if f.name == name:
                     return f
             raise FieldDoesNotExist, '%s has no field named %r' % (self.object_name, name)
+
+        def get_all_related_objects(self, local_only=False):
+            try:
+                self._related_objects_cache
+            except AttributeError:
+                self._fill_related_objects_cache()
+            if local_only:
+                return [k for k, v in self._related_objects_cache.items() if not v]
+            return self._related_objects_cache.keys()
+
+        def get_all_related_objects_with_model(self):
+            """
+            Returns a list of (related-object, model) pairs. Similar to
+            get_fields_with_model().
+            """
+            try:
+                self._related_objects_cache
+            except AttributeError:
+                self._fill_related_objects_cache()
+            return self._related_objects_cache.items()
+
+        def _fill_related_objects_cache(self):
+            from django.db.models.loading import get_models
+            from django.db.models.related import RelatedObject
+            cache = SortedDict()
+            parent_list = self.get_parent_list()
+            for parent in self.parents:
+                for obj, model in parent._meta.get_all_related_objects_with_model():
+                    if (obj.field.creation_counter < 0 or obj.field.rel.parent_link) and obj.model not in parent_list:
+                        continue
+                    if not model:
+                        cache[obj] = parent
+                    else:
+                        cache[obj] = model
+            for klass in get_models():
+                for f in klass._meta.local_fields:
+                    if f.rel and not isinstance(f.rel.to, str) and self == f.rel.to._meta:
+                        cache[RelatedObject(f.rel.to, klass, f)] = None
+            self._related_objects_cache = cache
+
+        def get_all_related_many_to_many_objects(self, local_only=False):
+            try:
+                cache = self._related_many_to_many_cache
+            except AttributeError:
+                cache = self._fill_related_many_to_many_cache()
+            if local_only:
+                return [k for k, v in cache.items() if not v]
+            return cache.keys()
+
+        def get_all_related_m2m_objects_with_model(self):
+            """
+            Returns a list of (related-m2m-object, model) pairs. Similar to
+            get_fields_with_model().
+            """
+            try:
+                cache = self._related_many_to_many_cache
+            except AttributeError:
+                cache = self._fill_related_many_to_many_cache()
+            return cache.items()
+
+        def _fill_related_many_to_many_cache(self):
+            from django.db.models.loading import get_models, app_cache_ready
+            from django.db.models.related import RelatedObject
+            cache = SortedDict()
+            parent_list = self.get_parent_list()
+            for parent in self.parents:
+                for obj, model in parent._meta.get_all_related_m2m_objects_with_model():
+                    if obj.field.creation_counter < 0 and obj.model not in parent_list:
+                        continue
+                    if not model:
+                        cache[obj] = parent
+                    else:
+                        cache[obj] = model
+            for klass in get_models():
+                for f in klass._meta.local_many_to_many:
+                    if f.rel and not isinstance(f.rel.to, str) and self == f.rel.to._meta:
+                        cache[RelatedObject(f.rel.to, klass, f)] = None
+            if app_cache_ready():
+                self._related_many_to_many_cache = cache
+            return cache
 
         def get_add_permission(self):
             return 'add_%s' % self.object_name.lower()
@@ -263,8 +353,19 @@ def patch_app_engine():
         def get_ordered_objects(self):
             return []
 
-    def _initialize_model(cls):
-        cls._meta = _meta(cls)
+        def get_parent_list(self):
+            """
+            Returns a list of all the ancestor of this model as a list. Useful for
+            determining if something is an ancestor, regardless of lineage.
+            """
+            result = set()
+            for parent in self.parents:
+                result.add(parent)
+                result.update(parent._meta.get_parent_list())
+            return result
+
+    def _initialize_model(cls, bases):
+        cls._meta = _meta(cls, bases)
         cls._default_manager = cls
         if not cls._meta.abstract:
             from django.db.models.loading import register_models
@@ -279,7 +380,7 @@ def patch_app_engine():
         The resulting model will be known to both the appengine libraries and
         Django.
         """
-        _initialize_model(cls)
+        _initialize_model(cls, bases)
         old_propertied_class_init(cls, name, bases, attrs,
             not cls._meta.abstract)
         signals.class_prepared.send(sender=cls)
@@ -288,7 +389,7 @@ def patch_app_engine():
     old_poly_init = polymodel.PolymorphicClass.__init__
     def __init__(cls, name, bases, attrs):
         if polymodel.PolyModel not in bases:
-            _initialize_model(cls)
+            _initialize_model(cls, bases)
         old_poly_init(cls, name, bases, attrs)
         if polymodel.PolyModel not in bases:
             signals.class_prepared.send(sender=cls)
