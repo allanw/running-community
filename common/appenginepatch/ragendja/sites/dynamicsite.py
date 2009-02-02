@@ -9,8 +9,13 @@ SITE_ID = settings.__class__.SITE_ID = make_tls_property()
 class DynamicSiteIDMiddleware(object):
     """Sets settings.SIDE_ID based on request's domain"""
     def process_request(self, request):
-        # Ignore port
-        domain = request.get_host().split(':')[0]
+        # Ignore port if it's 80 or 443
+        if ':' in request.get_host():
+            domain, port = request.get_host().split(':')
+            if int(port) not in (80, 443):
+                domain = request.get_host()
+        else:
+            domain = request.get_host().split(':')[0]
 
         # Try exact domain and fall back to with/without 'www.'
         site = Site.all().filter('domain =', domain).get()

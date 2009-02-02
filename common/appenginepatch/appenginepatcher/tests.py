@@ -1,6 +1,61 @@
 # -*- coding: utf-8 -*-
+from django.test import TestCase
 from ragendja.testutils import ModelTestCase
 from google.appengine.ext import db
+from google.appengine.ext.db.polymodel import PolyModel
+
+# Test class Meta
+
+class TestA(db.Model):
+    class Meta:
+        abstract = True
+        verbose_name = 'aaa'
+
+class TestB(TestA):
+    class Meta:
+        verbose_name = 'bbb'
+
+class TestC(TestA):
+    pass
+
+class PolyA(PolyModel):
+    class Meta:
+        verbose_name = 'polyb'
+
+class PolyB(PolyA):
+    pass
+
+class ModelMetaTest(TestCase):
+    def test_class_meta(self):
+        self.assertEqual(TestA._meta.verbose_name_plural, 'aaas')
+        self.assertTrue(TestA._meta.abstract)
+
+        self.assertEqual(TestB._meta.verbose_name_plural, 'bbbs')
+        self.assertFalse(TestB._meta.abstract)
+
+        self.assertEqual(TestC._meta.verbose_name_plural, 'test cs')
+        self.assertFalse(TestC._meta.abstract)
+
+        self.assertTrue(PolyA._meta.abstract)
+        self.assertFalse(PolyB._meta.abstract)
+
+# Test signals
+
+class SignalTest(TestCase):
+    def test_signals(self):
+        from django.db.models.signals import pre_delete
+        global received
+        received = False
+        def handle_pre_delete(signal, sender, instance):
+            global received
+            received = True
+        pre_delete.connect(handle_pre_delete, sender=TestC)
+        a = TestC()
+        a.put()
+        a.delete()
+        self.assertTrue(received)
+
+# Test serialization
 
 class SerializeModel(db.Model):
     name = db.StringProperty()
@@ -32,3 +87,4 @@ class SerializerTest(ModelTestCase):
 
     def test_yaml_serializer(self):
         self.test_serializer(format='yaml')
+

@@ -152,7 +152,7 @@ def updatemedia(compressed=None, silent=False):
         if not os.listdir(i18n_dir):
             os.rmdir(i18n_dir)
 
-    # Generate/remove a site_data file
+    # Generate/remove site_data file
     if site_data_path in tocombine:
         content = 'window.site_data = {};'
         content += 'window.site_data.settings = %s;' % dumps({
@@ -195,7 +195,7 @@ def updatemedia(compressed=None, silent=False):
     for app, media_dir in media_dirs.items():
         for root, dirs, files in os.walk(media_dir):
             for file in files:
-                if file.endswith(('.js', '.css')):
+                if file.startswith('.') or file.endswith(('.js', '.css')):
                     continue
                 path = os.path.join(root, file)
                 base = app + path[len(media_dir):]

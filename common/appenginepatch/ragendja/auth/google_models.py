@@ -18,9 +18,16 @@ class GoogleUserTraits(EmailUserTraits):
             django_user.put()
         return django_user
 
+    class Meta:
+        abstract = True
+
 class User(GoogleUserTraits):
     """Extended User class that provides support for Google Accounts."""
     user = db.UserProperty(required=True)
+
+    class Meta:
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
 
     @property
     def username(self):

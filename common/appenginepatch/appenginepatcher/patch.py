@@ -5,11 +5,15 @@
 # http://code.google.com/p/googleappengine/issues/list
 
 from google.appengine.ext import db
+from google.appengine.ext.db import polymodel
 import logging, new, os, re, sys
 
 base_path = os.path.abspath(os.path.dirname(__file__))
 
 get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', ' \\1', class_name).lower().strip()
+
+DEFAULT_NAMES = ('verbose_name', 'ordering', 'permissions', 'app_label',
+                 'abstract')
 
 def patch_all():
     patch_python()
@@ -163,31 +167,51 @@ def patch_app_engine():
                 self.app_label = model.__module__.split('.')[-2]
             except IndexError:
                 raise ValueError('Django expects models (here: %s.%s) to be defined in their own apps!' % (model.__module__, model.__name__))
-            Meta = getattr(model, 'Meta', None)
             self.object_name = model.__name__
             self.module_name = self.object_name.lower()
-            self.verbose_name = getattr(Meta,
-                'verbose_name', get_verbose_name(self.object_name))
-            self.verbose_name_plural = getattr(Meta,
-                'verbose_name_plural', string_concat(self.verbose_name, 's'))
-            self.ordering = getattr(Meta, 'ordering', ())
-            self.abstract = False
+            self.verbose_name = get_verbose_name(self.object_name)
+            self.ordering = ()
+            self.abstract = polymodel.PolyModel in model.__bases__
             self.model = model
             self.unique_together = ()
-            self.installed = model.__module__.rsplit('.', 1)[0] in settings.INSTALLED_APPS
-            self.permissions = getattr(Meta, 'permissions', ())
-            # XXX: Don't display auth permissions for all extra user models
-            if self.app_label != 'auth' or \
-                    not (self.object_name.endswith('Traits') or
-                         self.object_name == 'EmailUser'):
-                self.permissions += (
+            self.installed = model.__module__.rsplit('.', 1)[0] in \
+                             settings.INSTALLED_APPS
+            self.permissions = []
+
+            meta = model.__dict__.get('Meta')
+            if meta:
+                meta_attrs = meta.__dict__.copy()
+                for name in meta.__dict__:
+                    # Ignore any private attributes that Django doesn't care about.
+                    # NOTE: We can't modify a dictionary's contents while looping
+                    # over it, so we loop over the *original* dictionary instead.
+                    if name.startswith('_'):
+                        del meta_attrs[name]
+                for attr_name in DEFAULT_NAMES:
+                    if attr_name in meta_attrs:
+                        setattr(self, attr_name, meta_attrs.pop(attr_name))
+                    elif hasattr(meta, attr_name):
+                        setattr(self, attr_name, getattr(meta, attr_name))
+
+                # verbose_name_plural is a special case because it uses a 's'
+                # by default.
+                setattr(self, 'verbose_name_plural', meta_attrs.pop('verbose_name_plural', string_concat(self.verbose_name, 's')))
+
+                # Any leftover attributes must be invalid.
+                if meta_attrs != {}:
+                    raise TypeError, "'class Meta' got invalid attribute(s): %s" % ','.join(meta_attrs.keys())
+            else:
+                self.verbose_name_plural = self.verbose_name + 's'
+
+            if not self.abstract:
+                self.permissions.extend([
                     ('add_%s' % self.object_name.lower(),
                         string_concat('Can add ', self.verbose_name)),
                     ('change_%s' % self.object_name.lower(),
                         string_concat('Can change ', self.verbose_name)),
                     ('delete_%s' % self.object_name.lower(),
                         string_concat('Can delete ', self.verbose_name)),
-                )
+                ])
 
         def __repr__(self):
             return '<Options for %s>' % self.object_name
@@ -239,20 +263,36 @@ def patch_app_engine():
         def get_ordered_objects(self):
             return []
 
+    def _initialize_model(cls):
+        cls._meta = _meta(cls)
+        cls._default_manager = cls
+        if not cls._meta.abstract:
+            from django.db.models.loading import register_models
+            register_models(cls._meta.app_label, cls)
+
     # Register models with Django
-    old_init = db.PropertiedClass.__init__
-    def __init__(cls, name, bases, attrs):
+    from django.db.models import signals
+    old_propertied_class_init = db.PropertiedClass.__init__
+    def __init__(cls, name, bases, attrs, map_kind=True):
         """Creates a combined appengine and Django model.
 
         The resulting model will be known to both the appengine libraries and
         Django.
         """
-        cls._meta = _meta(cls)
-        cls._default_manager = cls
-        old_init(cls, name, bases, attrs)
-        from django.db.models.loading import register_models
-        register_models(cls._meta.app_label, cls)
+        _initialize_model(cls)
+        old_propertied_class_init(cls, name, bases, attrs,
+            not cls._meta.abstract)
+        signals.class_prepared.send(sender=cls)
     db.PropertiedClass.__init__ = __init__
+
+    old_poly_init = polymodel.PolymorphicClass.__init__
+    def __init__(cls, name, bases, attrs):
+        if polymodel.PolyModel not in bases:
+            _initialize_model(cls)
+        old_poly_init(cls, name, bases, attrs)
+        if polymodel.PolyModel not in bases:
+            signals.class_prepared.send(sender=cls)
+    polymodel.PolymorphicClass.__init__ = __init__
 
     @classmethod
     def kind(cls):
@@ -260,6 +300,33 @@ def patch_app_engine():
             return '%s_%s' % (cls._meta.app_label, cls._meta.object_name)
         return cls._meta.object_name
     db.Model.kind = kind
+
+    # Add model signals
+    old_model_init = db.Model.__init__
+    def __init__(self, *args, **kwargs):
+        signals.pre_init.send(sender=self.__class__, args=args, kwargs=kwargs)
+        old_model_init(self, *args, **kwargs)
+        signals.post_init.send(sender=self.__class__, instance=self)
+    db.Model.__init__ = __init__
+
+    old_put = db.Model.put
+    def put(self, *args, **kwargs):
+        raw = False
+        signals.pre_save.send(sender=self.__class__, instance=self, raw=raw)
+        created = not self.is_saved()
+        result = old_put(self, *args, **kwargs)
+        signals.post_save.send(sender=self.__class__, instance=self,
+            created=created, raw=raw)
+        return result
+    db.Model.put = put
+
+    old_delete = db.Model.delete
+    def delete(self, *args, **kwargs):
+        signals.pre_delete.send(sender=self.__class__, instance=self)
+        result = old_delete(self, *args, **kwargs)
+        signals.post_delete.send(sender=self.__class__, instance=self)
+        return result
+    db.Model.delete = delete
 
     # This has to come last because we load Django here
     from django.db.models.fields import BLANK_CHOICE_DASH
