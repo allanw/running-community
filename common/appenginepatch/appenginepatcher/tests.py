@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from django.db.models import signals
 from django.test import TestCase
+from ragendja.dbutils import cleanup_relations
 from ragendja.testutils import ModelTestCase
 from google.appengine.ext import db
 from google.appengine.ext.db.polymodel import PolyModel
@@ -43,13 +45,12 @@ class ModelMetaTest(TestCase):
 
 class SignalTest(TestCase):
     def test_signals(self):
-        from django.db.models.signals import pre_delete
         global received
         received = False
-        def handle_pre_delete(signal, sender, instance):
+        def handle_pre_delete(**kwargs):
             global received
             received = True
-        pre_delete.connect(handle_pre_delete, sender=TestC)
+        signals.pre_delete.connect(handle_pre_delete, sender=TestC)
         a = TestC()
         a.put()
         a.delete()
@@ -88,3 +89,25 @@ class SerializerTest(ModelTestCase):
     def test_yaml_serializer(self):
         self.test_serializer(format='yaml')
 
+# Test ragendja cleanup handler
+class SigChild(db.Model):
+    CLEANUP_REFERENCES = 'rel'
+
+    owner = db.ReferenceProperty(TestC)
+    rel = db.ReferenceProperty(TestC, collection_name='sigchildrel_set')
+
+class RelationsCleanupTest(TestCase):
+    def test_cleanup(self):
+        signals.pre_delete.connect(cleanup_relations, sender=TestC)
+        c1 = TestC()
+        c1.put()
+        c2 = TestC()
+        c2.put()
+        child = SigChild(owner=c1, rel=c2)
+        child.put()
+        self.assertEqual(TestC.all().count(), 2)
+        self.assertEqual(SigChild.all().count(), 1)
+        c1.delete()
+        signals.pre_delete.disconnect(cleanup_relations, sender=TestC)
+        self.assertEqual(SigChild.all().count(), 0)
+        self.assertEqual(TestC.all().count(), 0)

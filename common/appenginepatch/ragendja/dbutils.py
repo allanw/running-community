@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from django.db.models import signals
 from django.http import Http404
 from django.utils import simplejson
 from google.appengine.ext import db
@@ -267,13 +268,14 @@ class ReferenceProperty(db.ReferenceProperty):
     def is_resolved(cls, property, instance):
         try:
             if not hasattr(instance, property.__id_attr_name()) or \
-                    not getattr(model_instance, self.__id_attr_name()):
+                    not getattr(instance, property.__id_attr_name()):
                 return True
             return bool(getattr(instance, property.__resolved_attr_name()))
         except:
             import logging
-            logging.warn('ReferenceProperty implementation changed! Update '
-                         'ragendja.dbutils.ReferenceProperty.is_resolved!')
+            logging.exception('ReferenceProperty implementation changed! '
+                              'Update ragendja.dbutils.ReferenceProperty.'
+                              'is_resolved! Exception was:')
         return False
 
     def __set__(self, instance, value):
@@ -327,14 +329,98 @@ def to_json_data(model_instance, property_list):
         json_data[property] = value
     return json_data
 
-def delete_relations(entity, *relations):
-    related = []
-    for relation in relations:
-        items = getattr(entity, relation)
-        if not hasattr(items, '__iter__'):
-            items = (items,)
-        related.extend(items)
-    db.delete(related)
+def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
+    if not instance or getattr(instance, '__handling_delete', False):
+        return [], []
+
+    if to_delete is None:
+        to_delete = []
+    if to_put is None:
+        to_put = []
+    if rels_seen is None:
+        rels_seen = []
+
+    # Delete many-to-one relations
+    for related in instance._meta.get_all_related_objects():
+        # Check if we already have fetched some of the entities
+        seen = (related.opts, related.field.name)
+        if seen in rels_seen:
+            continue
+        rels_seen.append(seen)
+
+        entities = getattr(instance, related.get_accessor_name(),
+            related.model.all().filter(related.field.name + ' =', instance))
+        entities = entities.fetch(501)
+        for entity in entities[:]:
+            # Check if we might already have fetched this entity
+            for item in to_delete:
+                if item.key() == entity.key():
+                    entities.remove(entity)
+                    break
+            for item in to_put:
+                if item.key() == entity.key():
+                    to_put.remove(item)
+                    break
+
+        to_delete.extend(entities)
+        if len(to_delete) > 200:
+            raise Exception("Can't delete so many entities at once!")
+        for entity in entities:
+            get_cleanup_entities(entity, rels_seen=rels_seen,
+                    to_delete=to_delete, to_put=to_put)
+
+    # Models can define a CLEANUP_REFERENCES attribute if they have reference
+    # properties that must get geleted with the model.
+    include_references = getattr(instance, 'CLEANUP_REFERENCES', None)
+    if include_references:
+        if not isinstance(include_references, (list, tuple)):
+            include_references = (include_references,)
+        prefetch_references((instance,), include_references)
+        for name in include_references:
+            entity = getattr(instance, name)
+            to_delete.append(entity)
+            get_cleanup_entities(entity, rels_seen=rels_seen,
+                    to_delete=to_delete, to_put=to_put)
+
+    # Clean up many-to-many relations
+    for related in instance._meta.get_all_related_many_to_many_objects():
+        seen = (related.opts, related.field.name)
+        if seen in rels_seen:
+            continue
+        rels_seen.append(seen)
+        entities = getattr(instance, related.get_accessor_name(),
+            related.model.all().filter(related.field.name + ' =', instance))
+        entities = entities.fetch(501)
+        for entity in entities[:]:
+            # Check if we might already have fetched this entity
+            for item in to_put + to_delete:
+                if item.key() == entity.key():
+                    entities.remove(entity)
+                    entity = item
+                    break
+
+            # We assume that data is a list. Remove instance from the list.
+            data = getattr(entity, related.field.name)
+            data = [item for item in data
+                    if (isinstance(item, db.Key) and
+                        item != instance.key()) or
+                       item.key() != instance.key()]
+            setattr(entity, related.field.name, data)
+        to_put.extend(entities)
+        if len(to_put) > 200:
+            raise Exception("Can't change so many entities at once!")
+
+    return to_delete, to_put
+
+def cleanup_relations(instance, **kwargs):
+    to_delete, to_put = get_cleanup_entities(instance)
+    for entity in [instance] + to_delete:
+        entity.__handling_delete = True
+    db.delete(to_delete)
+    for entity in [instance] + to_delete:
+        del entity.__handling_delete
+    db.put([entity for entity in to_put
+            if not getattr(entity, '__handling_delete', False)])
 
 class FakeModel(object):
     """A fake model class which is stored as a string.

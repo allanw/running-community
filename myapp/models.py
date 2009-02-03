@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from django.db.models import permalink
+from django.db.models import permalink, signals
 from google.appengine.ext import db
-from ragendja.dbutils import delete_relations
+from ragendja.dbutils import cleanup_relations
 
 class Person(db.Model):
     """Basic user profile with personal details."""
@@ -15,11 +15,7 @@ class Person(db.Model):
     def get_absolute_url(self):
         return ('myapp.views.show_person', (), {'key': self.key()})
 
-    def delete(self):
-        # Also delete related entities
-        delete_relations(self, 'file_set', 'employee_contract_set',
-            'employer_contract_set')
-        super(Person, self).delete()
+signals.pre_delete.connect(cleanup_relations, sender=Person)
 
 class File(db.Model):
     owner = db.ReferenceProperty(Person, required=True, collection_name='file_set')
