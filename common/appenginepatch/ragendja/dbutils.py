@@ -329,9 +329,24 @@ def to_json_data(model_instance, property_list):
         json_data[property] = value
     return json_data
 
+def _get_included_cleanup_entities(entities, rels_seen, to_delete, to_put):
+    # Models can define a CLEANUP_REFERENCES attribute if they have
+    # reference properties that must get geleted with the model.
+    include_references = getattr(entities[0], 'CLEANUP_REFERENCES', None)
+    if include_references:
+        if not isinstance(include_references, (list, tuple)):
+            include_references = (include_references,)
+        prefetch_references(entities, include_references)
+        for entity in entities:
+            for name in include_references:
+                subentity = getattr(entity, name)
+                to_delete.append(subentity)
+                get_cleanup_entities(subentity, rels_seen=rels_seen,
+                        to_delete=to_delete, to_put=to_put)
+
 def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
     if not instance or getattr(instance, '__handling_delete', False):
-        return [], []
+        return [], [], []
 
     if to_delete is None:
         to_delete = []
@@ -343,7 +358,7 @@ def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
     # Delete many-to-one relations
     for related in instance._meta.get_all_related_objects():
         # Check if we already have fetched some of the entities
-        seen = (related.opts, related.field.name)
+        seen = (instance.key(), related.opts, related.field.name)
         if seen in rels_seen:
             continue
         rels_seen.append(seen)
@@ -365,26 +380,19 @@ def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
         to_delete.extend(entities)
         if len(to_delete) > 200:
             raise Exception("Can't delete so many entities at once!")
+
+        if not entities:
+            continue
         for entity in entities:
             get_cleanup_entities(entity, rels_seen=rels_seen,
                     to_delete=to_delete, to_put=to_put)
 
-    # Models can define a CLEANUP_REFERENCES attribute if they have reference
-    # properties that must get geleted with the model.
-    include_references = getattr(instance, 'CLEANUP_REFERENCES', None)
-    if include_references:
-        if not isinstance(include_references, (list, tuple)):
-            include_references = (include_references,)
-        prefetch_references((instance,), include_references)
-        for name in include_references:
-            entity = getattr(instance, name)
-            to_delete.append(entity)
-            get_cleanup_entities(entity, rels_seen=rels_seen,
-                    to_delete=to_delete, to_put=to_put)
+        _get_included_cleanup_entities(entities, rels_seen, to_delete, to_put)
+
 
     # Clean up many-to-many relations
     for related in instance._meta.get_all_related_many_to_many_objects():
-        seen = (related.opts, related.field.name)
+        seen = (instance.key(), related.opts, related.field.name)
         if seen in rels_seen:
             continue
         rels_seen.append(seen)
@@ -410,10 +418,11 @@ def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
         if len(to_put) > 200:
             raise Exception("Can't change so many entities at once!")
 
-    return to_delete, to_put
+    return rels_seen, to_delete, to_put
 
 def cleanup_relations(instance, **kwargs):
-    to_delete, to_put = get_cleanup_entities(instance)
+    rels_seen, to_delete, to_put = get_cleanup_entities(instance)
+    _get_included_cleanup_entities((instance,), rels_seen, to_delete, to_put)
     for entity in [instance] + to_delete:
         entity.__handling_delete = True
     db.delete(to_delete)
