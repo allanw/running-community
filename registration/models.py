@@ -6,11 +6,11 @@ import sha
 from google.appengine.ext import db
 
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth.models import User
-from django.contrib.sites.models import Site
 
 
 SHA1_RE = re.compile('^[a-f0-9]{40}$')
@@ -40,10 +40,18 @@ class RegistrationManager(models.Manager):
         
         To prevent reactivation of an account which has been
         deactivated by site administrators, the activation key is
-        reset to the string ``ALREADY_ACTIVATED`` after successful
-        activation.
+        reset to the string constant ``RegistrationProfile.ACTIVATED``
+        after successful activation.
+
+        To execute customized logic when a ``User`` is activated,
+        connect a function to the signal
+        ``registration.signals.user_activated``; this signal will be
+        sent (with the ``User`` as the value of the keyword argument
+        ``user``) after a successful activation.
         
         """
+        from registration.signals import user_activated
+        
         # Make sure the key we're trying conforms to the pattern of a
         # SHA1 hash; if it doesn't, no point trying to look it up in
         # the database.
@@ -57,13 +65,14 @@ class RegistrationManager(models.Manager):
                 user.put()
                 profile.activation_key = RegistrationProfile.ACTIVATED
                 profile.put()
+                user_activated.send(sender=self.model, user=user)
                 return user
         return False
     
     def create_inactive_user(self, username, password, email, domain_override="", 
                              send_email=True):
         """
-        Create a new, inactive ``User``, generates a
+        Create a new, inactive ``User``, generate a
         ``RegistrationProfile`` and email its activation key to the
         ``User``, returning the new ``User``.
         
@@ -89,24 +98,21 @@ class RegistrationManager(models.Manager):
             be the number of days for which the key will be valid and
             ``site`` will be the currently-active
             ``django.contrib.sites.models.Site`` instance.
-        
-        To enable creation of a custom user profile along with the
-        ``User`` (e.g., the model specified in the
-        ``AUTH_PROFILE_MODULE`` setting), define a function which
-        knows how to create and save an instance of that model with
-        appropriate default values, and pass it as the keyword
-        argument ``profile_callback``. This function should accept one
-        keyword argument:
 
-        ``user``
-            The ``User`` to relate the profile to.
+        To execute customized logic once the new ``User`` has been
+        created, connect a function to the signal
+        ``registration.signals.user_registered``; this signal will be
+        sent (with the new ``User`` as the value of the keyword
+        argument ``user``) after the ``User`` and
+        ``RegistrationProfile`` have been created, and the email (if
+        any) has been sent..
         
         """
-#        prepend "key_" to the key_name, because key_names can't start with numbers
-        new_user = User(username=username, key_name="key_"+username.lower())
-        new_user.email = email
+        from registration.signals import user_registered
+        # prepend "key_" to the key_name, because key_names can't start with numbers
+        new_user = User(username=username, key_name="key_"+username.lower(),
+            email=email, is_active=False)
         new_user.set_password(password)
-        new_user.is_active = False
         new_user.put()
         
         registration_profile = self.create_profile(new_user)
@@ -127,6 +133,7 @@ class RegistrationManager(models.Manager):
                                          'site': current_site })
             
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [new_user.email])
+        user_registered.send(sender=self.model, user=new_user)
         return new_user
     
     def create_profile(self, user):
@@ -207,10 +214,7 @@ class RegistrationProfile(db.Model):
     While it is possible to use this model as the value of the
     ``AUTH_PROFILE_MODULE`` setting, it's not recommended that you do
     so. This model's sole purpose is to store data temporarily during
-    account registration and activation, and a mechanism for
-    automatically creating an instance of a site-specific profile
-    model is provided via the ``create_inactive_user`` on
-    ``RegistrationManager``.
+    account registration and activation.
     
     """
     ACTIVATED = u"ALREADY_ACTIVATED"
@@ -235,9 +239,9 @@ class RegistrationProfile(db.Model):
         Key expiration is determined by a two-step process:
         
         1. If the user has already activated, the key will have been
-           reset to the string ``ALREADY_ACTIVATED``. Re-activating is
-           not permitted, and so this method returns ``True`` in this
-           case.
+           reset to the string constant ``ACTIVATED``. Re-activating
+           is not permitted, and so this method returns ``True`` in
+           this case.
 
         2. Otherwise, the date the user signed up is incremented by
            the number of days specified in the setting
