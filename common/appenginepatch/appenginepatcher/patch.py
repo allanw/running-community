@@ -169,7 +169,8 @@ def patch_app_engine():
                 self.app_label = model.__module__.split('.')[-2]
             except IndexError:
                 raise ValueError('Django expects models (here: %s.%s) to be defined in their own apps!' % (model.__module__, model.__name__))
-            self.parents = [b for b in bases if isinstance(b, db.Model)]
+            self.parents = [b for b in bases
+                            if issubclass(b, db.Model) and b is not db.Model]
             self.object_name = model.__name__
             self.module_name = self.object_name.lower()
             self.verbose_name = get_verbose_name(self.object_name)

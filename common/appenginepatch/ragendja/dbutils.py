@@ -421,15 +421,18 @@ def get_cleanup_entities(instance, rels_seen=None, to_delete=None, to_put=None):
     return rels_seen, to_delete, to_put
 
 def cleanup_relations(instance, **kwargs):
+    if getattr(instance, '__handling_delete', False):
+        return
     rels_seen, to_delete, to_put = get_cleanup_entities(instance)
     _get_included_cleanup_entities((instance,), rels_seen, to_delete, to_put)
     for entity in [instance] + to_delete:
         entity.__handling_delete = True
-    db.delete(to_delete)
+    if to_delete:
+        db.delete(to_delete)
     for entity in [instance] + to_delete:
         del entity.__handling_delete
-    db.put([entity for entity in to_put
-            if not getattr(entity, '__handling_delete', False)])
+    if to_put:
+        db.put(to_put)
 
 class FakeModel(object):
     """A fake model class which is stored as a string.

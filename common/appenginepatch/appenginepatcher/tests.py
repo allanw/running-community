@@ -100,9 +100,8 @@ class RelationsCleanupTest(TestCase):
     def test_cleanup(self):
         signals.pre_delete.connect(cleanup_relations, sender=TestC)
         c1 = TestC()
-        c1.put()
         c2 = TestC()
-        c2.put()
+        db.put((c1, c2))
         child = SigChild(owner=c1, rel=c2)
         child.put()
         self.assertEqual(TestC.all().count(), 2)
