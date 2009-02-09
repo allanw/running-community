@@ -49,6 +49,9 @@ def add_uncombined_app_media(env, app):
 
 # Import app-specific settings
 for app in INSTALLED_APPS:
+    # This is an optimization. Django's apps don't have special settings.
+    if app.startswith('django.') or app.endswith('.*'):
+        continue
     try:
         data = __import__(app + '.settings', {}, {}, [''])
         for key, value in data.__dict__.items():
