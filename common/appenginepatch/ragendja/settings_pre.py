@@ -35,8 +35,9 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.app_directories.load_template_source',
 )
 
-PROJECT_DIR = os.path.dirname(os.path.dirname(__file__))
-COMMON_DIR = os.path.dirname(__file__)
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(__file__))))
+COMMON_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 MAIN_DIRS = (PROJECT_DIR, COMMON_DIR)
 
 TEMPLATE_DIRS = tuple([os.path.join(dir, 'templates') for dir in MAIN_DIRS])

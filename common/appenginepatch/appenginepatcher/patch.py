@@ -23,7 +23,7 @@ def patch_all():
 
 def patch_python():
     # Remove modules that we want to override
-    for module in ('httplib', 'urllib', 'urllib2', 'memcache',):
+    for module in ('memcache',):
         if module in sys.modules:
             del sys.modules[module]
 
@@ -32,21 +32,11 @@ def patch_python():
     if have_appserver:
         from appenginepatcher import imp
         sys.modules['imp'] = imp
-        from appenginepatcher import socketpatch
 
     if have_appserver:
         def unlink(_):
             raise NotImplementedError('App Engine does not support FS writes!')
         os.unlink = unlink
-
-        # urllib2.randombytes checks for /dev/urandom and then opens the file
-        # without any further checks (failing)
-        old_exists = os.path.exists
-        def exists(path):
-            if path == '/dev/urandom':
-                return False
-            return old_exists(path)
-        os.path.exists = exists
 
 def patch_app_engine():
     # This allows for using Paginator on a Query object. We limit the number
@@ -461,7 +451,7 @@ def fix_app_engine_bugs():
                                      'initial' not in kwargs):
                 choices.append(('', '---------'))
             for choice in self.choices:
-                choices.append((str(choice), unicode(choice)))
+                choices.append((unicode(choice), unicode(choice)))
             defaults['widget'] = forms.Select(choices=choices)
         if self.default is not None:
             defaults['initial'] = self.default

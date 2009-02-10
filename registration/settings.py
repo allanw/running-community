@@ -1,4 +1,4 @@
-from settings_post import *
+from ragendja.settings_post import *
 
 try:
     ACCOUNT_ACTIVATION_DAYS

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from settings_pre import *
+from ragendja.settings_pre import *
 
 # Increase this when you update your media on the production site, so users
 # don't have to refresh their cache. By setting this your MEDIA_URL
@@ -76,4 +76,4 @@ INSTALLED_APPS = (
     'mediautils',
 )
 
-from settings_post import *
+from ragendja.settings_post import *

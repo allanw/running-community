@@ -29,6 +29,7 @@ def setup_env(manage_py_env=False):
         # Loop through all possible paths and look for the SDK dir.
         SDK_PATH = None
         for sdk_path in paths:
+            sdk_path = os.path.realpath(sdk_path)
             if os.path.exists(sdk_path):
                 SDK_PATH = sdk_path
                 break
@@ -89,14 +90,6 @@ def setup_project():
         PROJECT_DIR,
         COMMON_DIR,
     ]
-
-    # We have to import this here, so the stubs use the original Python libs
-    # and we can override them for the rest of the code below.
-    try:
-        from google.appengine.tools import appcfg
-        from google.appengine.api import urlfetch_stub
-    except ImportError:
-        pass
 
     this_folder = os.path.abspath(os.path.dirname(__file__))
     EXTRA_PATHS.append(os.path.join(this_folder, 'appenginepatcher', 'lib'))
