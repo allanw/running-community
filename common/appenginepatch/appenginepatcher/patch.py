@@ -79,7 +79,7 @@ def patch_app_engine():
     db.Property.editable = True
     db.Property.help_text = ''
     def _get_verbose_name(self):
-        if not self._verbose_name:
+        if not getattr(self, '_verbose_name', None):
             self._verbose_name = self.name.replace('_', ' ')
         return self._verbose_name
     def _set_verbose_name(self, verbose_name):
@@ -234,7 +234,8 @@ def patch_app_engine():
         @property
         def local_many_to_many(self):
             return tuple(sorted([p for p in self.model.properties().values()
-                                 if isinstance(p, db.ListProperty)],
+                                 if isinstance(p, db.ListProperty) and
+                                     not p.name == '_class'],
                                 key=lambda prop: prop.creation_counter))
 
         @property
