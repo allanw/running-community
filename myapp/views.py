@@ -34,7 +34,8 @@ def download_file(request, key, name):
     file = get_object_or_404(File, key)
     if file.name != name:
         raise Http404('Could not find file with this name!')
-    return HttpResponse(file.file, content_type=guess_type(file.name))
+    return HttpResponse(file.file,
+        content_type=guess_type(file.name)[0] or 'application/octet-stream')
 
 def create_admin_user(request):
     user = User.get_by_key_name('admin')
