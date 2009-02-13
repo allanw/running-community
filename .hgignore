@@ -1,11 +1,15 @@
 syntax: glob
+.i18n
+.project
+.pydevproject
+.settings
+.site_data.js
 *~
+*.orig
 *.pyc
 *.pyo
-*.tmp
 *.swp
-*.orig
-desktop.ini
+*.tmp
 _generated_media
-.i18n
-.site_data.js
+desktop.ini
+settings_overrides.py
