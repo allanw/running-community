@@ -4,6 +4,8 @@ import codecs, os
 
 def updatemessages():
     from django.conf import settings
+    if not settings.USE_I18N:
+        return
     from django.core.management.commands.compilemessages import compile_messages
     if any([needs_update(path) for path in settings.LOCALE_PATHS]):
         compile_messages()
