@@ -13,7 +13,7 @@ base_path = os.path.abspath(os.path.dirname(__file__))
 get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', ' \\1', class_name).lower().strip()
 
 DEFAULT_NAMES = ('verbose_name', 'ordering', 'permissions', 'app_label',
-                 'abstract')
+                 'abstract', 'db_table', 'db_tablespace')
 
 def patch_all():
     patch_python()
@@ -213,6 +213,28 @@ def patch_app_engine():
         def __str__(self):
             return "%s.%s" % (smart_str(self.app_label), smart_str(self.module_name))
 
+        def _set_db_table(self, db_table):
+            self._db_table = db_table
+        
+        def _get_db_table(self):
+            if hasattr(self, '_db_table'):
+                return self._db_table
+            if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
+                return '%s_%s' % (self.app_label, self.module_name)
+            return self.object_name
+
+        db_table = property(_get_db_table, _set_db_table)
+
+        def _set_db_tablespace(self, db_tablespace):
+            self._db_tablespace = db_tablespace
+        
+        def _get_db_tablespace(self):
+            if hasattr(self, '_db_tablespace'):
+                return self._db_tablespace
+            return settings.DEFAULT_TABLESPACE
+
+        db_tablespace = property(_get_db_tablespace, _set_db_tablespace)
+
         @property
         def verbose_name_raw(self):
             """
@@ -389,9 +411,7 @@ def patch_app_engine():
 
     @classmethod
     def kind(cls):
-        if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
-            return '%s_%s' % (cls._meta.app_label, cls._meta.object_name)
-        return cls._meta.object_name
+        return cls._meta.db_table
     db.Model.kind = kind
 
     # Add model signals
