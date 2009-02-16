@@ -217,9 +217,9 @@ def patch_app_engine():
             self._db_table = db_table
         
         def _get_db_table(self):
-            if hasattr(self, '_db_table'):
-                return self._db_table
             if getattr(settings, 'DJANGO_STYLE_MODEL_KIND', True):
+                if hasattr(self, '_db_table'):
+                    return self._db_table
                 return '%s_%s' % (self.app_label, self.module_name)
             return self.object_name
 
