@@ -20,6 +20,9 @@ class TestB(TestA):
 class TestC(TestA):
     pass
 
+class TestModelRel(db.Model):
+    modelrel = db.ReferenceProperty(db.Model)
+
 class PolyA(PolyModel):
     class Meta:
         verbose_name = 'polyb'
@@ -102,11 +105,14 @@ class RelationsCleanupTest(TestCase):
         c1 = TestC()
         c2 = TestC()
         db.put((c1, c2))
+        TestModelRel(modelrel=c1).put()
         child = SigChild(owner=c1, rel=c2)
         child.put()
         self.assertEqual(TestC.all().count(), 2)
         self.assertEqual(SigChild.all().count(), 1)
+        self.assertEqual(TestModelRel.all().count(), 1)
         c1.delete()
         signals.pre_delete.disconnect(cleanup_relations, sender=TestC)
         self.assertEqual(SigChild.all().count(), 0)
         self.assertEqual(TestC.all().count(), 0)
+        self.assertEqual(TestModelRel.all().count(), 0)
