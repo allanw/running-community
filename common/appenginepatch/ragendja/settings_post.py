@@ -53,7 +53,7 @@ def check_app_imports(app):
     __import__(app, {}, {}, [''])
     after = sys.modules.keys()
     added = [key[len(app)+1:] for key in after if key not in before and
-             key.startswith(app + '.')]
+             key.startswith(app + '.') and key[len(app)+1:]]
     if added:
         import logging
         logging.warn('The app "%(app)s" contains imports in '
