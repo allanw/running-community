@@ -49,18 +49,18 @@ def add_uncombined_app_media(env, app):
                 add_app_media(env, target, target)
 
 def check_app_imports(app):
-    data = __import__(app, {}, {}, [''])
-    for key, value in data.__dict__.items():
-        if getattr(value, '__module__', app) != app or \
-                getattr(value, '__file__', data.__file__) != data.__file__:
-            print key, value
-            print 'WARNING! The app "%(app)s" contains imports in ' \
-                  'its __init__.py! You should either do the ' \
-                  'import lazily (within functions) or ignore the ' \
-                  'app settings/urlsauto with ' \
-                  'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO' \
-                  % {'app': app}
-            break
+    before = sys.modules.keys()
+    __import__(app, {}, {}, [''])
+    after = sys.modules.keys()
+    added = [key[len(app)+1:] for key in after if key not in before and
+             key.startswith(app + '.')]
+    if added:
+        print 'WARNING! The app "%(app)s" contains imports in ' \
+              'its __init__.py (at least %(added)s)! You should ' \
+              'either do the import lazily (within functions) or ' \
+              'ignore the app settings/urlsauto with ' \
+              'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO' \
+              % {'app': app, 'added': ', '.join(added)}
 
 # Import app-specific settings
 for app in INSTALLED_APPS:
@@ -71,8 +71,7 @@ for app in INSTALLED_APPS:
         continue
     try:
         # First we check if __init__.py doesn't import anything
-        if app not in sys.modules:
-            check_app_imports(app)
+        check_app_imports(app)
         data = __import__(app + '.settings', {}, {}, [''])
         for key, value in data.__dict__.items():
             if not key.startswith('_'):
