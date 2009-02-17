@@ -78,6 +78,10 @@ INSTALLED_APPS = (
 
 # List apps which should be left out from app settings and urlsauto loading
 IGNORE_APP_SETTINGS = IGNORE_APP_URLSAUTO = (
+    # Example:
+    # 'django.contrib.admin',
+    # 'django.contrib.auth',
+    # 'yetanotherapp',
 )
 
 from ragendja.settings_post import *
