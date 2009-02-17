@@ -60,7 +60,8 @@ def check_app_imports(app):
                      'its __init__.py (at least %(added)s)! You should '
                      'either do the import lazily (within functions) or '
                      'ignore the app settings/urlsauto with '
-                     'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO'
+                     'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO in '
+                     'your settings.py.'
                      % {'app': app, 'added': ', '.join(added)})
 
 # Import app-specific settings
