@@ -53,3 +53,5 @@ FILE_UPLOAD_HANDLERS = (
 CACHE_BACKEND = 'memcached://?timeout=0'
 
 COMBINE_MEDIA = {}
+
+IGNORE_APP_SETTINGS = ()

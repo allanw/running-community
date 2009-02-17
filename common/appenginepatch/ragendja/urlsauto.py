@@ -5,13 +5,13 @@ Imports urlpatterns from apps, so we can have nice plug-n-play installation. :)
 from django.conf.urls.defaults import *
 from django.conf import settings
 
-URLSAUTO_IGNORE_APPS = getattr(settings, 'URLSAUTO_IGNORE_APPS', ())
+IGNORE_APP_URLSAUTO = getattr(settings, 'IGNORE_APP_URLSAUTO', ())
 
 urlpatterns = patterns('')
 
 for app in settings.INSTALLED_APPS:
     if app == 'ragendja' or app.startswith('django.') or \
-            app in URLSAUTO_IGNORE_APPS:
+            app in IGNORE_APP_URLSAUTO:
         continue
     try:
         urlpatterns += __import__(app + '.urlsauto', {}, {}, ['']).urlpatterns
