@@ -55,12 +55,13 @@ def check_app_imports(app):
     added = [key[len(app)+1:] for key in after if key not in before and
              key.startswith(app + '.')]
     if added:
-        print 'WARNING! The app "%(app)s" contains imports in ' \
-              'its __init__.py (at least %(added)s)! You should ' \
-              'either do the import lazily (within functions) or ' \
-              'ignore the app settings/urlsauto with ' \
-              'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO' \
-              % {'app': app, 'added': ', '.join(added)}
+        import logging
+        logging.warn('The app "%(app)s" contains imports in '
+                     'its __init__.py (at least %(added)s)! You should '
+                     'either do the import lazily (within functions) or '
+                     'ignore the app settings/urlsauto with '
+                     'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO'
+                     % {'app': app, 'added': ', '.join(added)})
 
 # Import app-specific settings
 for app in INSTALLED_APPS:
