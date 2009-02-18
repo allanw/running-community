@@ -14,7 +14,8 @@ def get_redirect_to(request, redirect_field_name):
         redirect_to = settings.LOGIN_REDIRECT_URL
     return redirect_to
 
-def google_login(request, template_name=None, redirect_field_name=None):
+def google_login(request, template_name=None,
+        redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = get_redirect_to(request, redirect_field_name)
     return HttpResponseRedirect(users.create_login_url(redirect_to))
 

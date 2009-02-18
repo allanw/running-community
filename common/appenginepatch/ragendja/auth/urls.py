@@ -31,8 +31,9 @@ elif 'ragendja.auth.middleware.HybridAuthenticationMiddleware' in \
         url(LOGOUT, 'ragendja.auth.views.hybrid_logout', LOGOUT_DATA,
             name='django.contrib.auth.views.logout'),
     )
-else:
-    urlpatterns += patterns('',
-        url(LOGIN, 'django.contrib.auth.views.login'),
-        url(LOGOUT, 'django.contrib.auth.views.logout', LOGOUT_DATA,),
-    )
+
+# When faking a real function we always have to add the real function, too.
+urlpatterns += patterns('',
+    url(LOGIN, 'django.contrib.auth.views.login'),
+    url(LOGOUT, 'django.contrib.auth.views.logout', LOGOUT_DATA,),
+)
