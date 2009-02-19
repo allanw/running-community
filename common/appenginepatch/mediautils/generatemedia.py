@@ -173,8 +173,14 @@ def updatemedia(compressed=None, silent=False):
 
     # Remove old generated files
     for root, dirs, files in os.walk(MEDIA_ROOT):
+        for name in dirs:
+            if name.startswith('.'):
+                shutil.rmtree(os.path.join(root, name))
         for file in files:
             path = os.path.join(root, file)
+            if file.startswith('.'):
+                os.remove(path)
+                continue
             pretty_name = path[len(MEDIA_ROOT)+1:].replace(os.sep, '/')
             app_path = ''
             if '/' in pretty_name:
@@ -194,6 +200,9 @@ def updatemedia(compressed=None, silent=False):
     # We ignore js and css files. They must always be combined.
     for app, media_dir in media_dirs.items():
         for root, dirs, files in os.walk(media_dir):
+            for name in dirs:
+                if name.startswith('.'):
+                    dirs.remove(name)
             for file in files:
                 if file.startswith('.') or file.endswith(('.js', '.css')):
                     continue
