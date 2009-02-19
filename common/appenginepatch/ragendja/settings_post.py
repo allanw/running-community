@@ -57,7 +57,8 @@ def check_app_imports(app):
     if added:
         import logging
         logging.warn('The app "%(app)s" contains imports in '
-                     'its __init__.py (at least %(added)s)! You should '
+                     'its __init__.py (at least %(added)s). This can cause '
+                     'strange bugs due to recursive imports! You should '
                      'either do the import lazily (within functions) or '
                      'ignore the app settings/urlsauto with '
                      'IGNORE_APP_SETTINGS and IGNORE_APP_URLSAUTO in '
