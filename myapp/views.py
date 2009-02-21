@@ -39,8 +39,9 @@ def download_file(request, key, name):
 
 def create_admin_user(request):
     user = User.get_by_key_name('admin')
-    if not user or not (user.is_active and user.is_staff and
-            user.is_superuser and user.check_password('admin')):
+    if not user or user.username != 'admin' or not (user.is_active and
+            user.is_staff and user.is_superuser and
+            user.check_password('admin')):
         user = User(key_name='admin', username='admin',
             email='admin@localhost', first_name='Boss', last_name='Admin',
             is_active=True, is_staff=True, is_superuser=True)
