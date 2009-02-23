@@ -1,9 +1,7 @@
 syntax: glob
-.i18n
 .project
 .pydevproject
 .settings
-.site_data.js
 *~
 *.orig
 *.pyc
@@ -11,5 +9,6 @@ syntax: glob
 *.swp
 *.tmp
 _generated_media
+.dynamic_media
 desktop.ini
 settings_overrides.py
