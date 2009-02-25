@@ -8,7 +8,8 @@ from ragendja.template import render_to_response
 
 @cache_control(public=True, max_age=3600*24*60*60)
 def get_file(request, path):
-    request.user = 'hey'
+    # This is needed for proper caching
+    request.session.accessed = request.session.modified
     media_dirs = get_media_dirs()
     data = {'media_dirs': media_dirs}
     targets = get_targets(**data)
