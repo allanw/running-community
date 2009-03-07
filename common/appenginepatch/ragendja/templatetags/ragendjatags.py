@@ -2,12 +2,10 @@
 from copy import deepcopy
 from django.forms.forms import NON_FIELD_ERRORS
 from django.template import Library
-from django.utils import simplejson
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from ragendja.dbutils import prefetch_references
-from ragendja.template import LazyEncoder
 
 register = Library()
 
@@ -15,6 +13,8 @@ register.filter('prefetch_references', prefetch_references)
 
 @register.filter
 def encodejs(value):
+    from django.utils import simplejson
+    from ragendja.json import LazyEncoder
     return mark_safe(simplejson.dumps(value, cls=LazyEncoder))
 
 @register.filter
