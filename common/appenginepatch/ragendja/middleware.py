@@ -2,6 +2,8 @@
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.utils.cache import patch_cache_control
+from google.appengine.runtime.apiproxy_errors import CapabilityDisabledError
+from ragendja.template import render_to_response
 
 LOGIN_REQUIRED_PREFIXES = getattr(settings, 'LOGIN_REQUIRED_PREFIXES', ())
 NO_LOGIN_REQUIRED_PREFIXES = getattr(settings, 'NO_LOGIN_REQUIRED_PREFIXES', ())
@@ -34,3 +36,9 @@ class NoHistoryCacheMiddleware(object):
             patch_cache_control(response,
                 no_store=True, no_cache=True, must_revalidate=True, max_age=0)
         return response
+
+class CapabilityDisabledMiddleware(object):
+    """Displays a default template on CapabilityDisabledError."""
+    def process_exception(self, request, exception):
+        if isinstance(exception, CapabilityDisabledError):
+            return render_to_response(request, 'maintenance.html')
