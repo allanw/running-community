@@ -119,3 +119,24 @@ class RelationsCleanupTest(TestCase):
         self.assertEqual(SigChild.all().count(), 0)
         self.assertEqual(TestC.all().count(), 0)
         self.assertEqual(TestModelRel.all().count(), 0)
+
+from ragendja.dbutils import FakeModel, FakeModelProperty, \
+    FakeModelListProperty
+
+class FM(db.Model):
+    data = FakeModelProperty(FakeModel, indexed=False)
+
+class FML(db.Model):
+    data = FakeModelListProperty(FakeModel, indexed=False)
+
+# Test FakeModel, FakeModelProperty, FakeModelListProperty
+class RelationsCleanupTest(TestCase):
+    def test_fake_model_property(self):
+        value = {'bla': [1, 2, {'blub': 'bla'}]}
+        FM(data=FakeModel(value=value)).put()
+        self.assertEqual(FM.all()[0].data.value, value)
+
+    def test_fake_model_list_property(self):
+        value = {'bla': [1, 2, {'blub': 'bla'}]}
+        FML(data=[FakeModel(value=value)]).put()
+        self.assertEqual(FML.all()[0].data[0].value, value)        

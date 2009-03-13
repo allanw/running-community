@@ -541,8 +541,11 @@ class FakeModelProperty(db.Property):
 class FakeModelListProperty(db.ListProperty):
     fake_item_type = basestring
 
-    def __init__(self, model, *args, **kwargs):
+    def __init__(self, model, indexed=True, *args, **kwargs):
         self.model = model
+        self.indexed = indexed
+        if not self.indexed:
+            self.fake_item_type = db.Text
         super(FakeModelListProperty, self).__init__(
             self.__class__.fake_item_type, *args, **kwargs)
 
@@ -561,11 +564,14 @@ class FakeModelListProperty(db.ListProperty):
 
     def get_value_for_datastore(self, model_instance):
         fake_models = getattr(model_instance, self.name)
+        if not self.indexed:
+            return [db.Text(fake_model.get_value_for_datastore())
+                    for fake_model in fake_models]
         return [fake_model.get_value_for_datastore()
                 for fake_model in fake_models]
 
     def make_value_from_datastore(self, value):
-        return [self.model.make_value_from_datastore(item)
+        return [self.model.make_value_from_datastore(unicode(item))
                 for item in value]
 
     def get_value_for_form(self, instance):
