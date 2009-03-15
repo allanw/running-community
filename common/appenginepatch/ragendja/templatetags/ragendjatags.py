@@ -11,11 +11,23 @@ register = Library()
 
 register.filter('prefetch_references', prefetch_references)
 
+_js_escapes = {
+    '>': r'\x3E',
+    '<': r'\x3C',
+    '&': r'\x26',
+    '=': r'\x3D',
+    '-': r'\x2D',
+    ';': r'\x3B',
+}
+
 @register.filter
 def encodejs(value):
     from django.utils import simplejson
     from ragendja.json import LazyEncoder
-    return mark_safe(simplejson.dumps(value, cls=LazyEncoder))
+    value = simplejson.dumps(value, cls=LazyEncoder)
+    for bad, good in _js_escapes.items():
+        value = value.replace(bad, good)
+    return mark_safe(value)
 
 @register.filter
 def urlquerybase(url):
