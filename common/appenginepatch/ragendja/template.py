@@ -20,7 +20,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.template import RequestContext, add_to_builtins, loader, \
     TemplateDoesNotExist
-from django.utils.encoding import force_unicode
 from ragendja.apputils import get_app_dirs
 import os
 

@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from django.utils import simplejson
+from django.utils.encoding import force_unicode
 from django.utils.functional import Promise
 
 class LazyEncoder(DjangoJSONEncoder):

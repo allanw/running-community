@@ -3,7 +3,9 @@ from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.utils.cache import patch_cache_control
 from google.appengine.runtime.apiproxy_errors import CapabilityDisabledError
+from google.appengine.ext import db
 from ragendja.template import render_to_response
+from ragendja.views import server_error, maintenance
 
 LOGIN_REQUIRED_PREFIXES = getattr(settings, 'LOGIN_REQUIRED_PREFIXES', ())
 NO_LOGIN_REQUIRED_PREFIXES = getattr(settings, 'NO_LOGIN_REQUIRED_PREFIXES', ())
@@ -41,4 +43,6 @@ class CapabilityDisabledMiddleware(object):
     """Displays a default template on CapabilityDisabledError."""
     def process_exception(self, request, exception):
         if isinstance(exception, CapabilityDisabledError):
-            return render_to_response(request, 'maintenance.html')
+            return maintenance(request)
+        elif isinstance(exception, db.Timeout):
+            return server_error(request)
