@@ -110,7 +110,8 @@ def get_file_content(handler, cache, **kwargs):
                 cache[path] = file.read().lstrip(codecs.BOM_UTF8.decode('utf-8')
                     ).replace('\r\n', '\n').replace('\r', '\n')
             except:
-                print 'Error in %s' % path
+                import logging
+                logging.error('Error in %s' % path)
                 raise
             file.close()
         elif callable(handler):
