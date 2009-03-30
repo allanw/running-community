@@ -542,6 +542,12 @@ def fix_app_engine_bugs():
         return super(db.UserProperty, self).get_form_field(**defaults)
     db.UserProperty.get_form_field = get_form_field
 
+    # Improve handing of StringListProperty
+    def get_form_field(self, **defaults):
+        defaults['required'] = False
+        return super(db.StringListProperty, self).get_form_field(**defaults)
+    db.StringListProperty.get_form_field = get_form_field
+
     # Fix file uploads via BlobProperty
     def get_form_field(self, **kwargs):
         defaults = {'form_class': forms.FileField}
