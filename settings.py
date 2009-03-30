@@ -6,6 +6,11 @@ from ragendja.settings_pre import *
 # automatically becomes /media/MEDIA_VERSION/
 MEDIA_VERSION = 1
 
+# Change your email settings
+if on_production_server:
+    DEFAULT_FROM_EMAIL = 'bla@bla.com'
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '1234567890'
 
