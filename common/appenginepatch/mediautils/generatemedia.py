@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.utils.simplejson import dumps
 from os.path import getmtime
-import os, codecs, shutil
+import os, codecs, shutil, logging
 
 MEDIA_VERSION = unicode(settings.MEDIA_VERSION)
 COMPRESSOR = os.path.join(os.path.dirname(__file__), '.yuicompressor.jar')
@@ -105,12 +105,11 @@ def get_file_content(handler, cache, **kwargs):
     path = get_file_path(handler, **kwargs)
     if path not in cache:
         if isinstance(handler, basestring):
-            file = codecs.open(path, 'r', 'utf-8')
             try:
+                file = codecs.open(path, 'r', 'utf-8')
                 cache[path] = file.read().lstrip(codecs.BOM_UTF8.decode('utf-8')
                     ).replace('\r\n', '\n').replace('\r', '\n')
             except:
-                import logging
                 logging.error('Error in %s' % path)
                 raise
             file.close()
