@@ -9,11 +9,11 @@
   <head>
     <title>{% block title %}{% endblock %} - site name</title>
     {% block css %}
-      {# <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}combined-{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}.css" /> #}
+      <link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}combined-{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}.css" />
     {% endblock %}
 
     {% block js %}
-      {# <script type="text/javascript" src="{{ MEDIA_URL }}combined-{{ LANGUAGE_CODE }}.js"></script> #}
+      <script type="text/javascript" src="{{ MEDIA_URL }}combined-{{ LANGUAGE_CODE }}.js"></script>
     {% endblock %}
 
     {% block extra-head %}{% endblock %}
