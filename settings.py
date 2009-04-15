@@ -56,6 +56,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'ragendja.middleware.CapabilityDisabledMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # Django authentication
     'django.contrib.auth.middleware.AuthenticationMiddleware',
