@@ -55,4 +55,7 @@ CACHE_BACKEND = 'memcached://?timeout=0'
 
 COMBINE_MEDIA = {}
 
+if not on_production_server:
+    INTERNAL_IPS = ('127.0.0.1',)
+
 IGNORE_APP_SETTINGS = ()
