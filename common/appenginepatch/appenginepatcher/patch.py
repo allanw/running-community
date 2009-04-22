@@ -53,7 +53,8 @@ def patch_app_engine():
                 return query._Query__model_class
             except:
                 return query._model_class
-    db.BaseQuery.model = ModelProperty()
+    db.Query.model = ModelProperty()
+    db.GqlQuery.model = ModelProperty()
 
     # Add a few Model methods that are needed for serialization and ModelForm
     def _get_pk_val(self):
