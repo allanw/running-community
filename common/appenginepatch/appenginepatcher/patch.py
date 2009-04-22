@@ -53,7 +53,7 @@ def patch_app_engine():
                 return query._Query__model_class
             except:
                 return query._model_class
-    db.Query.model = ModelProperty()
+    db.BaseQuery.model = ModelProperty()
 
     # Add a few Model methods that are needed for serialization and ModelForm
     def _get_pk_val(self):
@@ -279,7 +279,9 @@ def patch_app_engine():
         def local_many_to_many(self):
             return tuple(sorted([p for p in self.model.properties().values()
                                  if isinstance(p, db.ListProperty) and
-                                     not p.name == '_class'],
+                                     not (issubclass(self.model,
+                                                     polymodel.PolyModel)
+                                          and p.name == 'class')],
                                 key=lambda prop: prop.creation_counter))
 
         @property
