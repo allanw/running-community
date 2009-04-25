@@ -28,6 +28,8 @@ class FormWithSets(object):
     def __call__(self, *args,  **kwargs):
         prefix = kwargs['prefix'] + '-' if 'prefix' in kwargs else ''
         form = self.form(*args,  **kwargs)
+        if 'initial' in kwargs:
+            del kwargs['initial']
         formsets = []
         for name, formset in self.formsets:
             kwargs['prefix'] = prefix + name
