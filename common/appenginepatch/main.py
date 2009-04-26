@@ -16,6 +16,12 @@ from google.appengine.ext.webapp import util
 from django.conf import settings
 
 def real_main():
+    # Reset path and environment variables
+    global path_backup
+    try:
+        sys.path = path_backup[:]
+    except:
+        path_backup = sys.path[:]
     os.environ.update(aecmd.env_ext)
     setup_logging()
 
