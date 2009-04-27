@@ -67,7 +67,16 @@ def setup_env(manage_py_env=False):
 
     print 'Running on app-engine-patch 1.1beta1'
 
+# App Engine causes main.py to be reloaded if an exception gets raised
+# on the first request of a main.py instance, so don't setup_project() multiple
+# times.
+done_setup_project = False
+
 def setup_project():
+    global done_setup_project
+    if done_setup_project:
+        return
+
     # Remove the standard version of Django
     for k in [k for k in sys.modules if k.startswith('django')]:
         del sys.modules[k]

@@ -15,16 +15,28 @@ get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|
 DEFAULT_NAMES = ('verbose_name', 'ordering', 'permissions', 'app_label',
                  'abstract', 'db_table', 'db_tablespace')
 
+# Add checkpoints to patching procedure, so we don't apply certain patches
+# multiple times. This can happen if an exeception gets raised on the first
+# request of an instance. In that case, main.py gets reloaded and patch_all()
+# gets executed yet another time.
+done_patch_all = False
+
 def patch_all():
+    global done_patch_all
+    if done_patch_all:
+        return
     patch_python()
     patch_app_engine()
     patch_django()
     setup_logging()
+    done_patch_all = True
 
 def patch_python():
-    # Remove modules that we want to override
+    # Remove modules that we want to override. Don't remove modules that we've
+    # already overridden.
     for module in ('memcache',):
-        if module in sys.modules:
+        if module in sys.modules and \
+                not sys.modules[module].__file__.startswith(base_path):
             del sys.modules[module]
 
     # For some reason the imp module can't be replaced via sys.path
@@ -414,27 +426,31 @@ def patch_app_engine():
 
     # Register models with Django
     from django.db.models import signals
-    old_propertied_class_init = db.PropertiedClass.__init__
-    def __init__(cls, name, bases, attrs, map_kind=True):
-        """Creates a combined appengine and Django model.
+    if not hasattr(db.PropertiedClass.__init__, 'patched'):
+        old_propertied_class_init = db.PropertiedClass.__init__
+        def __init__(cls, name, bases, attrs, map_kind=True):
+            """Creates a combined appengine and Django model.
 
-        The resulting model will be known to both the appengine libraries and
-        Django.
-        """
-        _initialize_model(cls, bases)
-        old_propertied_class_init(cls, name, bases, attrs,
-            not cls._meta.abstract)
-        signals.class_prepared.send(sender=cls)
-    db.PropertiedClass.__init__ = __init__
-
-    old_poly_init = polymodel.PolymorphicClass.__init__
-    def __init__(cls, name, bases, attrs):
-        if polymodel.PolyModel not in bases:
+            The resulting model will be known to both the appengine libraries
+            and Django.
+            """
             _initialize_model(cls, bases)
-        old_poly_init(cls, name, bases, attrs)
-        if polymodel.PolyModel not in bases:
+            old_propertied_class_init(cls, name, bases, attrs,
+                not cls._meta.abstract)
             signals.class_prepared.send(sender=cls)
-    polymodel.PolymorphicClass.__init__ = __init__
+        __init__.patched = True
+        db.PropertiedClass.__init__ = __init__
+
+    if not hasattr(polymodel.PolymorphicClass.__init__, 'patched'):
+        old_poly_init = polymodel.PolymorphicClass.__init__
+        def __init__(cls, name, bases, attrs):
+            if polymodel.PolyModel not in bases:
+                _initialize_model(cls, bases)
+            old_poly_init(cls, name, bases, attrs)
+            if polymodel.PolyModel not in bases:
+                signals.class_prepared.send(sender=cls)
+        __init__.patched = True
+        polymodel.PolymorphicClass.__init__ = __init__
 
     @classmethod
     def kind(cls):
@@ -442,31 +458,38 @@ def patch_app_engine():
     db.Model.kind = kind
 
     # Add model signals
-    old_model_init = db.Model.__init__
-    def __init__(self, *args, **kwargs):
-        signals.pre_init.send(sender=self.__class__, args=args, kwargs=kwargs)
-        old_model_init(self, *args, **kwargs)
-        signals.post_init.send(sender=self.__class__, instance=self)
-    db.Model.__init__ = __init__
+    if not hasattr(db.Model.__init__, 'patched'):
+        old_model_init = db.Model.__init__
+        def __init__(self, *args, **kwargs):
+            signals.pre_init.send(sender=self.__class__, args=args,
+                                  kwargs=kwargs)
+            old_model_init(self, *args, **kwargs)
+            signals.post_init.send(sender=self.__class__, instance=self)
+        __init__.patched = True
+        db.Model.__init__ = __init__
 
-    old_put = db.Model.put
-    def put(self, *args, **kwargs):
-        raw = False
-        signals.pre_save.send(sender=self.__class__, instance=self, raw=raw)
-        created = not self.is_saved()
-        result = old_put(self, *args, **kwargs)
-        signals.post_save.send(sender=self.__class__, instance=self,
-            created=created, raw=raw)
-        return result
-    db.Model.put = put
+    if not hasattr(db.Model.put, 'patched'):
+        old_put = db.Model.put
+        def put(self, *args, **kwargs):
+            raw = False
+            signals.pre_save.send(sender=self.__class__, instance=self, raw=raw)
+            created = not self.is_saved()
+            result = old_put(self, *args, **kwargs)
+            signals.post_save.send(sender=self.__class__, instance=self,
+                created=created, raw=raw)
+            return result
+        put.patched = True
+        db.Model.put = put
 
-    old_delete = db.Model.delete
-    def delete(self, *args, **kwargs):
-        signals.pre_delete.send(sender=self.__class__, instance=self)
-        result = old_delete(self, *args, **kwargs)
-        signals.post_delete.send(sender=self.__class__, instance=self)
-        return result
-    db.Model.delete = delete
+    if not hasattr(db.Model.delete, 'patched'):
+        old_delete = db.Model.delete
+        def delete(self, *args, **kwargs):
+            signals.pre_delete.send(sender=self.__class__, instance=self)
+            result = old_delete(self, *args, **kwargs)
+            signals.post_delete.send(sender=self.__class__, instance=self)
+            return result
+        delete.patched = True
+        db.Model.delete = delete
 
     # This has to come last because we load Django here
     from django.db.models.fields import BLANK_CHOICE_DASH

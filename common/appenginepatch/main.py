@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import os, sys
 
-# Add current folder to sys.path, so we can import aecmd
+# Add current folder to sys.path, so we can import aecmd.
+# App Engine causes main.py to be reloaded if an exception gets raised
+# on the first request of a main.py instance, so don't add current_dir multiple
+# times.
 current_dir = os.path.abspath(os.path.dirname(__file__))
-sys.path = [current_dir] + sys.path
+if current_dir not in sys.path:
+    sys.path = [current_dir] + sys.path
 
 import aecmd
 aecmd.setup_project()
