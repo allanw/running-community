@@ -39,7 +39,7 @@ class NoHistoryCacheMiddleware(object):
                 no_store=True, no_cache=True, must_revalidate=True, max_age=0)
         return response
 
-class CapabilityDisabledMiddleware(object):
+class ErrorMiddleware(object):
     """Displays a default template on CapabilityDisabledError."""
     def process_exception(self, request, exception):
         if isinstance(exception, CapabilityDisabledError):
