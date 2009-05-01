@@ -558,16 +558,6 @@ def fix_app_engine_bugs():
         return super(db.TimeProperty, self).get_form_field(**defaults)
     db.TimeProperty.get_form_field = get_form_field
 
-    # Fix default value of UserProperty (Google resolves the user too early)
-    # http://code.google.com/p/googleappengine/issues/detail?id=879
-    from django.utils.functional import lazy
-    from google.appengine.api import users
-    def get_form_field(self, **kwargs):
-        defaults = {'initial': lazy(users.GetCurrentUser, users.User)()}
-        defaults.update(kwargs)
-        return super(db.UserProperty, self).get_form_field(**defaults)
-    db.UserProperty.get_form_field = get_form_field
-
     # Improve handing of StringListProperty
     def get_form_field(self, **defaults):
         defaults['required'] = False
