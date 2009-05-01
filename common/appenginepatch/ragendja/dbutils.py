@@ -526,11 +526,10 @@ class FakeModelProperty(db.Property):
 
     @classmethod
     def get_fake_defaults(self, fake_model, multiple=False, **kwargs):
-        from django import forms
-        choices = tuple([(item.get_value_for_datastore(), unicode(item))
-                         for item in fake_model.all()])
-        form = multiple and forms.MultipleChoiceField or forms.ChoiceField
-        defaults = {'form_class': form, 'choices': choices}
+        from ragendja import forms
+        form = multiple and forms.FakeModelMultipleChoiceField or \
+                            forms.FakeModelChoiceField
+        defaults = {'form_class': form, 'fake_model': fake_model}
         defaults.update(kwargs)
         return defaults
 

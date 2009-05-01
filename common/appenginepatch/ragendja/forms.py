@@ -1,6 +1,7 @@
 from copy import deepcopy
 import re
 
+from django import forms
 from django.utils.datastructures import SortedDict, MultiValueDict
 from django.utils.html import conditional_escape
 from django.utils.encoding import StrAndUnicode, smart_unicode, force_unicode
@@ -8,6 +9,28 @@ from django.utils.safestring import mark_safe
 from django.forms.widgets import flatatt
 from google.appengine.ext import db
 from ragendja.dbutils import transaction
+
+class FakeModelChoiceField(forms.ChoiceField):
+    def __init__(self, fake_model, *args, **kwargs):
+        self.fake_model = fake_model
+        kwargs['choices'] = ()
+        super(FakeModelChoiceField, self).__init__(*args, **kwargs)
+
+    def _get_choices(self):
+        choices = tuple([(item.get_value_for_datastore(), unicode(item))
+                         for item in self.fake_model.all()])
+    choices = property(_get_choices, lambda self, x: None)
+
+class FakeModelMultipleChoiceField(forms.MultipleChoiceField):
+    def __init__(self, fake_model, *args, **kwargs):
+        self.fake_model = fake_model
+        kwargs['choices'] = ()
+        super(FakeModelMultipleChoiceField, self).__init__(*args, **kwargs)
+
+    def _get_choices(self):
+        choices = tuple([(item.get_value_for_datastore(), unicode(item))
+                         for item in self.fake_model.all()])
+    choices = property(_get_choices, lambda self, x: None)
 
 class FormWithSets(object):
     def __init__(self, form, formsets=()):
