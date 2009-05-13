@@ -7,12 +7,6 @@ render_to_response() and render_to_string() use RequestContext internally.
 The app_prefixed_loader is a template loader that loads directly from the app's
 'templates' folder when you specify an app prefix ('app/template.html').
 
-It's possible to register global template libraries by adding this to your
-settings:
-GLOBALTAGS = (
-    'myapp.templatetags.cooltags',
-)
-
 The JSONResponse() function automatically converts a given Python object into
 JSON and returns it as an HttpResponse.
 """
@@ -66,12 +60,6 @@ def JSONResponse(pyobj):
 def TextResponse(string=''):
     return HttpResponse(string,
         content_type='text/plain; charset=%s' % settings.DEFAULT_CHARSET)
-
-# Load app modules after all definitions, so imports won't break.
-
-# Register global template libraries.
-for lib in getattr(settings, 'GLOBALTAGS', ()):
-    add_to_builtins(lib)
 
 # This is needed by app_prefixed_loader.
 app_template_dirs = get_app_dirs('templates')

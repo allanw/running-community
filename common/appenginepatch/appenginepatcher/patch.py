@@ -27,7 +27,10 @@ def patch_all():
         return
     patch_python()
     patch_app_engine()
-    patch_django()
+    
+    # Add signals: post_save_committed, post_delete_committed
+    from appenginepatcher import transactions
+    
     setup_logging()
     done_patch_all = True
 
@@ -148,7 +151,7 @@ def patch_app_engine():
     def formfield(self, **kwargs):
         return self.get_form_field(**kwargs)
     db.Property.formfield = formfield
-
+    
     # Add repr to make debugging a little bit easier
     from django.utils.datastructures import SortedDict
     def __repr__(self):
@@ -592,13 +595,6 @@ def fix_app_engine_bugs():
         defaults.update(kwargs)
         return super(db.ReferenceProperty, self).get_form_field(**defaults)
     db.ReferenceProperty.get_form_field = get_form_field
-
-def patch_django():
-    # Most patches are part of the django-app-engine project:
-    # http://www.bitbucket.org/wkornewald/django-app-engine/
-
-    # Activate ragendja's GLOBALTAGS support (automatically done on import)
-    from ragendja import template
 
 def setup_logging():
     from django.conf import settings
