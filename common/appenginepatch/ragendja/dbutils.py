@@ -102,7 +102,7 @@ def db_create(model, parent=None, key_name_format=u'%s',
         if result:
             return result
 
-def prefetch_references(object_list, references):
+def prefetch_references(object_list, references, cache=None):
     """
     Dereferences the given (Key)ReferenceProperty fields of a list of objects
     in as few get() calls as possible.
@@ -136,6 +136,16 @@ def prefetch_references(object_list, references):
                         continue
                     key = property.get_value_for_datastore(item)
                 if key:
+                    # Check if we already have a matching item in cache
+                    if cache:
+                        found_cached = None
+                        for cached_item in cache:
+                            if cached_item.key() == key:
+                                found_cached = cached_item
+                        if found_cached:
+                            setattr(item, name, found_cached)
+                            continue
+                    # No item found in cache. Retrieve it.
                     key = str(key)
                     prefetch[key] = prefetch.get(key, ()) + ((item, name),)
         for target_model, prefetch in targets.values():
@@ -486,11 +496,9 @@ class FakeModel(object):
 class FakeModelProperty(db.Property):
     data_type = basestring
 
-    def __init__(self, model, indexed=True, *args, **kwargs):
+    def __init__(self, model, raw=False, *args, **kwargs):
+        self.raw = raw
         self.model = model
-        self.indexed = indexed
-        if not self.indexed:
-            self.data_type = db.Text
         super(FakeModelProperty, self).__init__(*args, **kwargs)
 
     def validate(self, value):
@@ -534,16 +542,20 @@ class FakeModelProperty(db.Property):
         return defaults
 
     def get_form_field(self, **kwargs):
-        defaults = FakeModelProperty.get_fake_defaults(self.model, **kwargs)
+        if self.raw:
+          from django import forms
+          defaults = kwargs
+          defaults['widget'] = forms.TextInput(attrs={'size': 80})
+        else:
+          defaults = FakeModelProperty.get_fake_defaults(self.model, **kwargs)
         return super(FakeModelProperty, self).get_form_field(**defaults)
 
 class FakeModelListProperty(db.ListProperty):
     fake_item_type = basestring
 
-    def __init__(self, model, indexed=True, *args, **kwargs):
+    def __init__(self, model, *args, **kwargs):
         self.model = model
-        self.indexed = indexed
-        if not self.indexed:
+        if not kwargs.get('indexed', True):
             self.fake_item_type = db.Text
         super(FakeModelListProperty, self).__init__(
             self.__class__.fake_item_type, *args, **kwargs)

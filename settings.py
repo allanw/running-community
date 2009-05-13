@@ -77,11 +77,6 @@ MIDDLEWARE_CLASSES = (
 # Hybrid Django/Google authentication
 #AUTH_USER_MODULE = 'ragendja.auth.hybrid_models'
 
-GLOBALTAGS = (
-    'ragendja.templatetags.ragendjatags',
-    'django.templatetags.i18n',
-)
-
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'
 LOGIN_REDIRECT_URL = '/'
