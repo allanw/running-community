@@ -75,7 +75,8 @@ def compress_file(path):
     from subprocess import Popen
     print '  Running yuicompressor...',
     try:
-        cmd = Popen(['java', '-jar', COMPRESSOR, path, '-o', path])
+        cmd = Popen(['java', '-jar', COMPRESSOR, '--charset', 'UTF-8',
+                     path, '-o', path])
         if cmd.wait() == 0:
             print '%d bytes' % os.path.getsize(path)
         else:
