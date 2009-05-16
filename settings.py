@@ -8,7 +8,7 @@ MEDIA_VERSION = 1
 
 # By hosting media on a different domain we can get a speedup (more parallel
 # browser connections).
-#if on_production_server or (len(sys.argv) >= 2 and sys.argv[1] == 'update'):
+#if on_production_server or not have_appserver:
 #    MEDIA_URL = 'http://media.mydomain.com/media/%d/'
 
 # Add base media (jquery can be easily added via INSTALLED_APPS)
