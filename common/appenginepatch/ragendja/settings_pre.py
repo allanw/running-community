@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from appenginepatcher import on_production_server
+from appenginepatcher import on_production_server, have_appserver
 import os
 DEBUG = not on_production_server
 
