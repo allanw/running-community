@@ -10,6 +10,14 @@ from django.forms.widgets import flatatt
 from google.appengine.ext import db
 from ragendja.dbutils import transaction
 
+class FakeModelIterator(object):
+    def __init__(self, fake_model):
+        self.fake_model = fake_model
+    
+    def __iter__(self):
+        for item in self.fake_model.all():
+            yield (item.get_value_for_datastore(), unicode(item))
+
 class FakeModelChoiceField(forms.ChoiceField):
     def __init__(self, fake_model, *args, **kwargs):
         self.fake_model = fake_model
@@ -17,9 +25,14 @@ class FakeModelChoiceField(forms.ChoiceField):
         super(FakeModelChoiceField, self).__init__(*args, **kwargs)
 
     def _get_choices(self):
-        choices = tuple([(item.get_value_for_datastore(), unicode(item))
-                         for item in self.fake_model.all()])
-    choices = property(_get_choices, lambda self, x: None)
+        return self._choices
+    def _set_choices(self, choices):
+        self._choices = self.widget.choices = FakeModelIterator(self.fake_model)
+    choices = property(_get_choices, _set_choices)
+
+    def clean(self, value):
+        value = super(FakeModelChoiceField, self).clean(value)
+        return self.fake_model.make_value_from_datastore(value)
 
 class FakeModelMultipleChoiceField(forms.MultipleChoiceField):
     def __init__(self, fake_model, *args, **kwargs):
@@ -28,9 +41,14 @@ class FakeModelMultipleChoiceField(forms.MultipleChoiceField):
         super(FakeModelMultipleChoiceField, self).__init__(*args, **kwargs)
 
     def _get_choices(self):
-        choices = tuple([(item.get_value_for_datastore(), unicode(item))
-                         for item in self.fake_model.all()])
-    choices = property(_get_choices, lambda self, x: None)
+        return self._choices
+    def _set_choices(self, choices):
+        self._choices = self.widget.choices = FakeModelIterator(self.fake_model)
+    choices = property(_get_choices, _set_choices)
+
+    def clean(self, value):
+        value = super(FakeModelChoiceField, self).clean(value)
+        return self.fake_model.make_value_from_datastore(value)
 
 class FormWithSets(object):
     def __init__(self, form, formsets=()):
