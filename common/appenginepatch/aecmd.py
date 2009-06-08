@@ -18,7 +18,8 @@ def setup_env(manage_py_env=False):
         # may be. First look within the project for a local copy, then look for
         # where the Mac OS SDK installs it.
         paths = [os.path.join(COMMON_DIR, '.google_appengine'),
-                 '/usr/local/google_appengine']
+                 '/usr/local/google_appengine',
+                 '/Applications/GoogleAppEngineLauncher.app/Contents/Resources/GoogleAppEngine-default.bundle/Contents/Resources/google_appengine']
         for path in os.environ.get('PATH', '').replace(';', ':').split(':'):
             path = path.rstrip(os.sep)
             if path.endswith('google_appengine'):
