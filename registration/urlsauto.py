@@ -1,5 +1,5 @@
 from django.conf.urls.defaults import *
 
-urlpatterns = patterns('',
+rootpatterns = patterns('',
     (r'^account/', include('registration.urls')),
 )

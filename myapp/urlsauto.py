@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls.defaults import *
 
-urlpatterns = patterns('',
+rootpatterns = patterns('',
     (r'^person/', include('myapp.urls')),
 )
