@@ -118,6 +118,10 @@ def get_file_content(handler, cache, **kwargs):
             cache[path] = handler(**kwargs)
         else:
             raise ValueError('Media generator source "%r" not valid!' % handler)
+    # Add $MEDIA_URL variable to CSS files
+    ext = os.path.splitext(path)[1]
+    if ext == '.css':
+        cache[path] = cache[path].replace('$MEDIA_URL/', settings.MEDIA_URL)
     return cache[path]
 
 def update_dynamic_file(handler, cache, **kwargs):
