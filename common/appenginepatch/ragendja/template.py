@@ -12,10 +12,30 @@ JSON and returns it as an HttpResponse.
 """
 from django.conf import settings
 from django.http import HttpResponse
-from django.template import RequestContext, add_to_builtins, loader, \
-    TemplateDoesNotExist
+from django.template import RequestContext, loader, \
+    TemplateDoesNotExist, Library, Node, Variable, generic_tag_compiler
+from django.utils.functional import curry
+from inspect import getargspec
 from ragendja.apputils import get_app_dirs
 import os
+
+class Library(Library):
+    def context_tag(self, func):
+        params, xx, xxx, defaults = getargspec(func)
+
+        class ContextNode(Node):
+            def __init__(self, vars_to_resolve):
+                self.vars_to_resolve = map(Variable, vars_to_resolve)
+
+            def render(self, context):
+                resolved_vars = [var.resolve(context) for var in self.vars_to_resolve]
+                return func(context, *resolved_vars)
+
+        params = params[1:]
+        compile_func = curry(generic_tag_compiler, params, defaults, getattr(func, "_decorated_function", func).__name__, ContextNode)
+        compile_func.__doc__ = func.__doc__
+        self.tag(getattr(func, "_decorated_function", func).__name__, compile_func)
+        return func
 
 # The following defines a template loader that loads templates from a specific
 # app based on the prefix of the template path:
