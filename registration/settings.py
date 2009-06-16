@@ -1,6 +1,4 @@
-from ragendja.settings_post import *
+from ragendja.settings_post import settings
 
-try:
-    ACCOUNT_ACTIVATION_DAYS
-except:
-    ACCOUNT_ACTIVATION_DAYS = 30
+if not hasattr(settings, 'ACCOUNT_ACTIVATION_DAYS'):
+    settings.ACCOUNT_ACTIVATION_DAYS = 30

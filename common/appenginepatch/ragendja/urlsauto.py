@@ -6,7 +6,7 @@ from django.conf.urls.defaults import *
 from django.conf import settings
 
 IGNORE_APP_URLSAUTO = getattr(settings, 'IGNORE_APP_URLSAUTO', ())
-check_app_imports = getattr(settings, 'check_app_imports', lambda x: None)
+check_app_imports = getattr(settings, 'check_app_imports', None)
 
 urlpatterns = patterns('')
 
@@ -16,7 +16,8 @@ for app in settings.INSTALLED_APPS:
         continue
     appname = app.rsplit('.', 1)[-1]
     try:
-        check_app_imports(app)
+        if check_app_imports:
+            check_app_imports(app)
         module = __import__(app + '.urlsauto', {}, {}, [''])
     except ImportError:
         pass

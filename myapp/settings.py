@@ -1,4 +1,4 @@
-from ragendja.settings_post import *
-add_app_media(globals(), 'combined-%(LANGUAGE_CODE)s.js',
+from ragendja.settings_post import settings
+settings.add_app_media('combined-%(LANGUAGE_CODE)s.js',
     'myapp/code.js',
 )

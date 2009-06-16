@@ -6,7 +6,7 @@
 
 from google.appengine.ext import db
 from google.appengine.ext.db import polymodel
-import logging, new, os, re, sys
+import logging, os, re, sys
 
 base_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -153,17 +153,19 @@ def patch_app_engine():
     db.Property.formfield = formfield
     
     # Add repr to make debugging a little bit easier
-    from django.utils.datastructures import SortedDict
     def __repr__(self):
-        d = SortedDict()
-        if self.has_key() and self.key().name():
-            d['key_name'] = self.key().name()
+        data = []
+        if self.has_key():
+            if self.key().name():
+                data.append('key_name='+repr(self.key().name()))
+            else:
+                data.append('key_id='+repr(self.key().id()))
         for field in self._meta.fields:
             try:
-                d[field.name] = getattr(self, field.name)
+                data.append(field.name+'='+repr(getattr(self, field.name)))
             except:
-                d[field.name] = field.get_value_for_datastore(self)
-        return u'%s(**%s)' % (self.__class__.__name__, repr(d))
+                data.append(field.name+'='+repr(field.get_value_for_datastore(self)))
+        return u'%s(%s)' % (self.__class__.__name__, ', '.join(data))
     db.Model.__repr__ = __repr__
 
     # Add default __str__ and __unicode__ methods
@@ -337,6 +339,7 @@ def patch_app_engine():
         def _fill_related_objects_cache(self):
             from django.db.models.loading import get_models
             from django.db.models.related import RelatedObject
+            from django.utils.datastructures import SortedDict
             cache = SortedDict()
             parent_list = self.get_parent_list()
             for parent in self.parents:
@@ -376,6 +379,7 @@ def patch_app_engine():
         def _fill_related_many_to_many_cache(self):
             from django.db.models.loading import get_models, app_cache_ready
             from django.db.models.related import RelatedObject
+            from django.utils.datastructures import SortedDict
             cache = SortedDict()
             parent_list = self.get_parent_list()
             for parent in self.parents:

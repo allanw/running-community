@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from django.conf import settings
-from django.contrib.auth.views import redirect_to_login
 from django.utils.cache import patch_cache_control
 from google.appengine.runtime.apiproxy_errors import CapabilityDisabledError
 from google.appengine.ext import db
@@ -23,6 +22,7 @@ class LoginRequiredMiddleware(object):
         for prefix in LOGIN_REQUIRED_PREFIXES:
             if request.path.startswith(prefix) and \
                     not request.user.is_authenticated():
+                from django.contrib.auth.views import redirect_to_login
                 return redirect_to_login(request.get_full_path())
         return None
 

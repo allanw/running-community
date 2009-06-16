@@ -153,9 +153,10 @@ def get_targets(combine_media=settings.COMBINE_MEDIA, **kwargs):
     for target in sorted(combine_media.keys()):
         group = combine_media[target]
         if '.site_data.js' in group:
-            index = list(group).index('.site_data.js')
-            group = group[:index] + (site_data,) + group[index+1:]
-        group = tuple(group)
+            # site_data must always come first because other modules might
+            # depend on it
+            group.remove('.site_data.js')
+            group.insert(0, site_data)
         if '%(LANGUAGE_CODE)s' in target:
             # This file uses i18n, so generate a separate file per language.
             # The language data is always added before all other files.
@@ -164,7 +165,7 @@ def get_targets(combine_media=settings.COMBINE_MEDIA, **kwargs):
                 data['LANGUAGE_CODE'] = LANGUAGE_CODE
                 filename = target % data
                 data['target'] = filename
-                group = (lang_data,) + group
+                group.insert(0, lang_data)
                 targets.append((filename, data, group))
         elif '%(LANGUAGE_DIR)s' in target:
             # Generate CSS files for both text directions
