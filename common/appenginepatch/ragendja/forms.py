@@ -47,8 +47,9 @@ class FakeModelMultipleChoiceField(forms.MultipleChoiceField):
     choices = property(_get_choices, _set_choices)
 
     def clean(self, value):
-        value = super(FakeModelChoiceField, self).clean(value)
-        return self.fake_model.make_value_from_datastore(value)
+        value = super(FakeModelMultipleChoiceField, self).clean(value)
+        return [self.fake_model.make_value_from_datastore(item)
+                for item in value]
 
 class FormWithSets(object):
     def __init__(self, form, formsets=()):
