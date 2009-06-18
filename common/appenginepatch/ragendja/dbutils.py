@@ -527,6 +527,9 @@ class FakeModelProperty(db.Property):
     def get_value_for_form(self, instance):
         return self.get_value_for_datastore(instance)
 
+    def make_value_from_form(self, value):
+        return value
+
     def __set__(self, model_instance, value):
         if isinstance(value, basestring):
             value = self.make_value_from_datastore(value)
@@ -589,7 +592,7 @@ class FakeModelListProperty(db.ListProperty):
         return self.get_value_for_datastore(instance)
 
     def make_value_from_form(self, value):
-        return self.make_value_from_datastore(value)
+        return value
 
     def get_form_field(self, **kwargs):
         defaults = FakeModelProperty.get_fake_defaults(self.model,
