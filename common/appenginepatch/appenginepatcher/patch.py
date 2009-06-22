@@ -566,7 +566,10 @@ def fix_app_engine_bugs():
     db.TimeProperty.get_form_field = get_form_field
 
     # Improve handing of StringListProperty
-    def get_form_field(self, **defaults):
+    def get_form_field(self, **kwargs):
+        defaults = {'widget': forms.Textarea,
+                    'initial': ''}
+        defaults.update(kwargs)
         defaults['required'] = False
         return super(db.StringListProperty, self).get_form_field(**defaults)
     db.StringListProperty.get_form_field = get_form_field
