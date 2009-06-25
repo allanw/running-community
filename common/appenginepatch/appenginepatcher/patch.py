@@ -236,6 +236,9 @@ def patch_app_engine():
             else:
                 self.verbose_name_plural = self.verbose_name + 's'
 
+            if not isinstance(self.permissions, list):
+                self.permissions = list(self.permissions)
+
             if not self.abstract:
                 self.permissions.extend([
                     ('add_%s' % self.object_name.lower(),
