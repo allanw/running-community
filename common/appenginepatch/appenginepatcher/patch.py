@@ -58,9 +58,14 @@ def patch_app_engine():
     # of results to 301, so there won't be any timeouts (301, so you can say
     # "more than 300 results").
     def __len__(self):
-        return self.count(301)
+        return self.count()
     db.Query.__len__ = __len__
-
+    
+    old_count = db.Query.count
+    def count(self, limit=301):
+        return old_count(self, limit)
+    db.Query.count = count
+    
     # Add "model" property to Query (needed by generic views)
     class ModelProperty(object):
         def __get__(self, query, unused):
