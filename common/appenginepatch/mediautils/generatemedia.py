@@ -189,7 +189,7 @@ def get_copy_targets(media_dirs, **kwargs):
     targets = {}
     for app, media_dir in media_dirs.items():
         for root, dirs, files in os.walk(media_dir):
-            for name in dirs:
+            for name in dirs[:]:
                 if name.startswith('.'):
                     dirs.remove(name)
             for file in files:
@@ -212,7 +212,7 @@ def cleanup_dir(dir, paths):
             keep.append(path)
             path = os.path.dirname(path)
     for root, dirs, files in os.walk(dir):
-        for name in dirs:
+        for name in dirs[:]:
             path = os.path.abspath(os.path.join(root, name))
             if path not in keep:
                 shutil.rmtree(path)
