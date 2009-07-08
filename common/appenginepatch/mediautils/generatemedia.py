@@ -98,7 +98,8 @@ def get_file_path(handler, target, media_dirs, **kwargs):
         if handler.__module__.startswith(app + '.') and len(app) > len(owner):
             owner = app
     owner = owner or handler.__module__
-    name = getattr(handler, 'name', handler.__name__ + ext) % kwargs
+    name = getattr(handler, 'name', handler.__name__ + ext) % dict(kwargs,
+                                                                target=target)
     assert '/' not in name
     return os.path.join(DYNAMIC_MEDIA, '%s-%s' % (owner, name))
 

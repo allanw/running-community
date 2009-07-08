@@ -24,7 +24,9 @@ def add_person(request):
                                    kwargs=dict(key='%(key)s')))
 
 def edit_person(request, key):
-    return update_object(request, object_id=key, form_class=PersonForm)
+    return update_object(request, object_id=key, form_class=PersonForm,
+        post_save_redirect=reverse('myapp.views.show_person',
+                                   kwargs=dict(key='%(key)s')))
 
 def delete_person(request, key):
     return delete_object(request, Person, object_id=key,
