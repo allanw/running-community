@@ -486,15 +486,39 @@ def patch_app_engine():
     if not hasattr(db.Model.put, 'patched'):
         old_put = db.Model.put
         def put(self, *args, **kwargs):
-            raw = False
-            signals.pre_save.send(sender=self.__class__, instance=self, raw=raw)
+            signals.pre_save.send(sender=self.__class__, instance=self,
+                                  raw=False)
             created = not self.is_saved()
             result = old_put(self, *args, **kwargs)
             signals.post_save.send(sender=self.__class__, instance=self,
-                created=created, raw=raw)
+                created=created, raw=False)
             return result
         put.patched = True
         db.Model.put = put
+
+    if not hasattr(db.put, 'patched'):
+        old_db_put = db.put
+        def put(models, *args, **kwargs):
+            if not isinstance(models, (list, tuple)):
+                items = (models,)
+            else:
+                items = models
+            items_created = []
+            for item in items:
+                if not isinstance(item, db.Model):
+                    continue
+                signals.pre_save.send(sender=item.__class__, instance=item,
+                                      raw=False)
+                items_created.append(not item.is_saved())
+            result = old_db_put(models, *args, **kwargs)
+            for item, created in zip(items, items_created):
+                if not isinstance(item, db.Model):
+                    continue
+                signals.post_save.send(sender=item.__class__, instance=item,
+                    created=created, raw=False)
+            return result
+        put.patched = True
+        db.put = put
 
     if not hasattr(db.Model.delete, 'patched'):
         old_delete = db.Model.delete
@@ -505,6 +529,26 @@ def patch_app_engine():
             return result
         delete.patched = True
         db.Model.delete = delete
+
+    if not hasattr(db.delete, 'patched'):
+        old_db_delete = db.delete
+        def delete(models, *args, **kwargs):
+            if not isinstance(models, (list, tuple)):
+                items = (models,)
+            else:
+                items = models
+            for item in items:
+                if not isinstance(item, db.Model):
+                    continue
+                signals.pre_delete.send(sender=item.__class__, instance=item)
+            result = old_db_delete(models, *args, **kwargs)
+            for item in items:
+                if not isinstance(item, db.Model):
+                    continue
+                signals.post_delete.send(sender=item.__class__, instance=item)
+            return result
+        delete.patched = True
+        db.delete = delete
 
     # This has to come last because we load Django here
     from django.db.models.fields import BLANK_CHOICE_DASH
