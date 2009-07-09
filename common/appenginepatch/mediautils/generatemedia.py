@@ -2,7 +2,9 @@
 from django.conf import settings
 from django.utils.simplejson import dumps
 from os.path import getmtime
-import os, codecs, shutil, logging
+import os, codecs, shutil, logging, re
+
+path_re = re.compile(r'/[^/]+/\.\./')
 
 MEDIA_VERSION = unicode(settings.MEDIA_VERSION)
 COMPRESSOR = os.path.join(os.path.dirname(__file__), '.yuicompressor.jar')
@@ -103,6 +105,31 @@ def get_file_path(handler, target, media_dirs, **kwargs):
     assert '/' not in name
     return os.path.join(DYNAMIC_MEDIA, '%s-%s' % (owner, name))
 
+def get_css_content(handler, content, **kwargs):
+    # Add $MEDIA_URL variable to CSS files
+    content = content.replace('$MEDIA_URL/', settings.MEDIA_URL)
+
+    # Remove @charset rules
+    content = re.sub(r'@charset(.*?);', '', content)
+
+    if not isinstance(handler, basestring):
+        return content
+
+    def fixurls(path):
+        # Resolve ../ paths
+        path = '%s%s/%s' % (settings.MEDIA_URL,
+                            os.path.dirname(handler % dict(kwargs)),
+                            path.group(1))
+        while path_re.search(path):
+            path = path_re.sub('/', path, 1)
+        return 'url("%s")' % path
+
+    # Make relative paths work with MEDIA_URL
+    content = re.sub(r'url\s*\(["\']?([\w\.][^:]*?)["\']?\)',
+                     fixurls, content)
+
+    return content
+
 def get_file_content(handler, cache, **kwargs):
     path = get_file_path(handler, **kwargs)
     if path not in cache:
@@ -119,10 +146,10 @@ def get_file_content(handler, cache, **kwargs):
             cache[path] = handler(**kwargs)
         else:
             raise ValueError('Media generator source "%r" not valid!' % handler)
-    # Add $MEDIA_URL variable to CSS files
+    # Rewrite url() paths in CSS files
     ext = os.path.splitext(path)[1]
     if ext == '.css':
-        cache[path] = cache[path].replace('$MEDIA_URL/', settings.MEDIA_URL)
+        cache[path] = get_css_content(handler, cache[path], **kwargs)
     return cache[path]
 
 def update_dynamic_file(handler, cache, **kwargs):
