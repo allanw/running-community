@@ -132,9 +132,14 @@ def patch_app_engine():
         return self.name
     db.Property.attname = property(attname)
 
+    class EmptyObject(object):
+        pass
+
     class Rel(object):
         def __init__(self, property):
             self.field_name = 'key'
+            self.field = EmptyObject()
+            self.field.name = self.field_name
             self.property = property
             self.to = property.reference_class
             self.multiple = True
@@ -156,6 +161,21 @@ def patch_app_engine():
     def formfield(self, **kwargs):
         return self.get_form_field(**kwargs)
     db.Property.formfield = formfield
+
+    def _get_flatchoices(self):
+        """Flattened version of choices tuple."""
+        if not self.choices:
+            return []
+        if not isinstance(choices[0], (list, tuple)):
+            return [(choice, choice) for choice in self.choices]
+        flat = []
+        for choice, value in self.choices:
+            if type(value) in (list, tuple):
+                flat.extend(value)
+            else:
+                flat.append((choice,value))
+        return flat
+    db.Property.flatchoices = property(_get_flatchoices)
     
     # Add repr to make debugging a little bit easier
     def __repr__(self):
@@ -199,6 +219,12 @@ def patch_app_engine():
             name = 'key'
             attname = 'pk'
 
+            @classmethod
+            def get_db_prep_lookup(cls, lookup_type, pk_value):
+                if isinstance(pk_value, db.Key):
+                    return pk_value
+                return db.Key(pk_value)
+
         def __init__(self, model, bases):
             try:
                 self.app_label = model.__module__.split('.')[-2]
@@ -212,6 +238,7 @@ def patch_app_engine():
             self.abstract = model is db.Model
             self.model = model
             self.unique_together = ()
+            self.proxy = False
             self.installed = model.__module__.rsplit('.', 1)[0] in \
                              settings.INSTALLED_APPS
             self.permissions = []
