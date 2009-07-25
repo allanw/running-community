@@ -193,7 +193,8 @@ def get_targets(combine_media=settings.COMBINE_MEDIA, **kwargs):
                 data['LANGUAGE_CODE'] = LANGUAGE_CODE
                 filename = target % data
                 data['target'] = filename
-                group.insert(0, lang_data)
+                if lang_data not in group:
+                    group.insert(0, lang_data)
                 targets.append((filename, data, group))
         elif '%(LANGUAGE_DIR)s' in target:
             # Generate CSS files for both text directions
