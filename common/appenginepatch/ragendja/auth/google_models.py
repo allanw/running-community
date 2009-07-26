@@ -17,6 +17,10 @@ class GoogleUserTraits(EmailUserTraits):
             django_user.is_active = True
             
         user_put = False
+        if django_user.user != user:
+            django_user.user = user
+            user_put = True
+            
         user_id = user.user_id()
         if django_user.user_id != user_id:
             django_user.user_id = user_id
