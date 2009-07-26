@@ -186,8 +186,11 @@ def patch_app_engine():
             else:
                 data.append('key_id='+repr(self.key().id()))
         for field in self._meta.fields:
+            if isinstance(field, db.ReferenceProperty):
+                data.append(field.name+'='+repr(field.get_value_for_datastore(self)))
+                continue
             try:
-                data.append(field.name+'='+unicode(getattr(self, field.name)))
+                data.append(field.name+'='+repr(getattr(self, field.name)))
             except:
                 data.append(field.name+'='+repr(field.get_value_for_datastore(self)))
         return u'%s(%s)' % (self.__class__.__name__, ', '.join(data))
