@@ -147,6 +147,17 @@ def patch_app_engine():
             self.related_name = getattr(property, 'collection_name', None)
             self.through = None
 
+        def get_related_field(self):
+            """
+            Returns the Field in the 'to' object to which this relationship is
+            tied.
+            """
+            data = self.to._meta.get_field_by_name(self.field_name)
+            if not data[2]:
+                raise FieldDoesNotExist("No related field named '%s'" %
+                        self.field_name)
+            return data[0]
+
     class RelProperty(object):
         def __get__(self, property, cls):
             if property is None:
@@ -242,6 +253,7 @@ def patch_app_engine():
             self.model = model
             self.unique_together = ()
             self.proxy = False
+            self.has_auto_field = True
             self.installed = model.__module__.rsplit('.', 1)[0] in \
                              settings.INSTALLED_APPS
             self.permissions = []
@@ -344,6 +356,28 @@ def patch_app_engine():
         def fields(self):
             return self.local_fields + self.local_many_to_many
 
+        def init_name_map(self):
+            """
+            Initialises the field name -> field object mapping.
+            """
+            from django.db.models.loading import app_cache_ready
+            cache = {}
+            # We intentionally handle related m2m objects first so that symmetrical
+            # m2m accessor names can be overridden, if necessary.
+            for f, model in self.get_all_related_m2m_objects_with_model():
+                try:
+                    cache[f.field.collection_name] = (f, model, False, True)
+                except:
+                    pass
+            for f, model in self.get_all_related_objects_with_model():
+                try:
+                    cache[f.field.collection_name] = (f, model, False, False)
+                except:
+                    pass
+            if app_cache_ready():
+                self._name_map = cache
+            return cache
+
         def get_field(self, name, many_to_many=True):
             """
             Returns the requested field by name. Raises FieldDoesNotExist on error.
@@ -353,6 +387,29 @@ def patch_app_engine():
                     return f
             from django.db.models.fields import FieldDoesNotExist
             raise FieldDoesNotExist, '%s has no field named %r' % (self.object_name, name)
+
+        def get_field_by_name(self, name):
+            """
+            Returns the (field_object, model, direct, m2m), where field_object is
+            the Field instance for the given name, model is the model containing
+            this field (None for local fields), direct is True if the field exists
+            on this model, and m2m is True for many-to-many relations. When
+            'direct' is False, 'field_object' is the corresponding RelatedObject
+            for this field (since the field doesn't have an instance associated
+            with it).
+
+            Uses a cache internally, so after the first access, this is very fast.
+            """
+            try:
+                try:
+                    return self._name_map[name]
+                except AttributeError:
+                    cache = self.init_name_map()
+                    return cache[name]
+            except KeyError:
+                from django.db.models.fields import FieldDoesNotExist
+                raise FieldDoesNotExist('%s has no field named %r'
+                        % (self.object_name, name))
 
         def get_all_related_objects(self, local_only=False):
             try:
