@@ -4,6 +4,9 @@ from django.utils.simplejson import dumps
 from os.path import getmtime
 import os, codecs, shutil, logging, re
 
+class MediaGeneratorError(Exception):
+    pass
+
 path_re = re.compile(r'/[^/]+/\.\./')
 
 MEDIA_VERSION = unicode(settings.MEDIA_VERSION)
@@ -84,7 +87,7 @@ def compress_file(path):
         else:
             print 'Failed!'
     except:
-        raise Exception("Failed to execute Java VM. "
+        raise MediaGeneratorError("Failed to execute Java VM. "
             "Please make sure that you have installed Java "
             "and that it's in your PATH.")
 
@@ -102,8 +105,7 @@ def get_file_path(handler, target, media_dirs, **kwargs):
     owner = owner or handler.__module__
     name = getattr(handler, 'name', handler.__name__ + ext) % dict(kwargs,
                                                                 target=target)
-    assert '/' not in name
-    return os.path.join(DYNAMIC_MEDIA, '%s-%s' % (owner, name))
+    return os.path.join(DYNAMIC_MEDIA, '%s/%s' % (owner, name))
 
 def get_css_content(handler, content, **kwargs):
     # Add $MEDIA_URL variable to CSS files
@@ -139,8 +141,9 @@ def get_file_content(handler, cache, **kwargs):
                 cache[path] = file.read().lstrip(codecs.BOM_UTF8.decode('utf-8')
                     ).replace('\r\n', '\n').replace('\r', '\n')
             except:
-                logging.error('Error in %s' % path)
-                raise
+                import traceback
+                raise MediaGeneratorError('Error in %s:\n%s\n' %
+                                          (path, traceback.format_exc()))
             file.close()
         elif callable(handler):
             cache[path] = handler(**kwargs)
@@ -163,6 +166,9 @@ def update_dynamic_file(handler, cache, **kwargs):
             needs_update = True
         file.close()
     if needs_update:
+        dir = os.path.dirname(path)
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
         file = codecs.open(path, 'w', 'utf-8')
         file.write(content)
         file.close()
