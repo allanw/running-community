@@ -177,7 +177,7 @@ def patch_app_engine():
         """Flattened version of choices tuple."""
         if not self.choices:
             return []
-        if not isinstance(choices[0], (list, tuple)):
+        if not isinstance(self.choices[0], (list, tuple)):
             return [(choice, choice) for choice in self.choices]
         flat = []
         for choice, value in self.choices:
