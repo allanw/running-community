@@ -6,7 +6,7 @@ PROJECT_DIR = os.path.dirname(COMMON_DIR)
 ZIP_PACKAGES_DIRS = (os.path.join(PROJECT_DIR, 'zip-packages'),
                      os.path.join(COMMON_DIR, 'zip-packages'))
 # Overrides for os.environ
-env_ext = {'DJANGO_SETTINGS_MODULE' : 'settings', 'USER_EMAIL' : ''}
+env_ext = {'DJANGO_SETTINGS_MODULE': 'settings'}
 
 def setup_env(manage_py_env=False):
     """Configures app engine environment for command-line apps."""
