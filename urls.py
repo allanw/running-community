@@ -17,4 +17,5 @@ urlpatterns = auth_patterns + patterns('',
     url(r'^account/register/$', 'registration.views.register',
         kwargs={'form_class': UserRegistrationForm},
         name='registration_register'),
+    (r'^alsapp/', include('alsapp.urls')),
 ) + urlpatterns
