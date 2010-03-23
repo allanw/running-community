@@ -4,7 +4,15 @@
 {% block content %}
 <h1>Register</h1>
 <form action="{{ request.path }}" method="post">
-  <table>{{ form }}</table>
+  <table>{{ form }}	
+  </table>
   <input type="submit" value="Register" />
+  <p>
+	<div id="loading"><img src='http://blog.narcvs.com/wp-content/uploads/2008/05/5-0.gif' /></div>
+    <span id='nike_account_sync'>Click me!</span>
+  </p>
+  <p>
+	<div id='foo'></div>
+  </p>
 </form>
 {% endblock content %}

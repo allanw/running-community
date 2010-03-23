@@ -22,7 +22,7 @@ EMAIL_PORT = 25
 EMAIL_HOST_USER = 'user'
 EMAIL_HOST_PASSWORD = 'password'
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'user@localhost'
+DEFAULT_FROM_EMAIL = 'al.whatmough@gmail.com'
 SERVER_EMAIL = 'user@localhost'
 
 LOGIN_REQUIRED_PREFIXES = ()
