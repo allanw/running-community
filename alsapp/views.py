@@ -106,10 +106,19 @@ def get_nike_plus_data(request):
 
 	return HttpResponseRedirect('/alsapp/')
 
+def _makeCookieHeader(cookie):
+    cookieHeader = ""
+    for value in cookie.values():
+        cookieHeader += "%s=%s; " % (value.key, value.value)
+    return cookieHeader
 
 def my_test(request):
+
+    nike_id = request.GET.get('nike_id', None)
+    nike_password = request.GET.get('nike_password', None)
 	
     callback = request.GET.get('callback', None)
+
 	
 	#import cookielib
 
@@ -118,11 +127,9 @@ def my_test(request):
 	#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 	#urllib2.install_opener(opener)
 
-	#theurl = 'https://secure-nikeplus.nike.com/services/profileService?action=login&login=kyuss_1@hotmail.com&password=pyth0n1c&locale=en_us'
-
 	#theurl2 = 'https://secure-nikeplus.nike.com/nikeplus/v1/services/app/get_user_data.jsp'
 	
-	#theurl3 = 'https://secure-nikeplus.nike.com/nikeplus/v1/services/app/generate_pin.jhtml?action=login&login=kyuss_1@hotmail.com&password=pyth0n1c&locale=en_us'
+	#theurl3 = 'https://secure-nikeplus.nike.com/nikeplus/v1/services/app/generate_pin.jhtml?action=login&login=myemail&password=mypassword&locale=en_us'
 	
 	#foo = urllib2.urlopen(theurl3).read()
 	#dom = minidom.parseString(foo)
@@ -142,17 +149,42 @@ def my_test(request):
 	#handle2 = urllib2.urlopen(req2).read()
 	
 	#return HttpResponse('hello', mimetype='application/json')
-	
-    #import urllib2
-    #import cookielib
-	
-    #cj = cookielib.LWPCookieJar()
+
+    import urllib2
+    import cookielib
+    cj = cookielib.LWPCookieJar()
+
+    theurl = 'https://secure-nikeplus.nike.com/services/profileService?action=login&login=%s&password=%s&locale=en_us' % (nike_id, nike_password)
+
+    import Cookie
+    cookie = Cookie.SimpleCookie()
+    from google.appengine.api import urlfetch
+    headers = {
+               'Host' : 'runlogger.appspot.com',
+               'User-Agent' : 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
+               'Cookie' : _makeCookieHeader(cookie)
+               }
+
+    response = urlfetch.fetch(url=theurl, headers=headers, deadline=10)
+
+    cookie.load(response.headers.get('set-cookie', ''))
+
+    # N.B. REDEFINE THE COOKIE HERE, AFTER LOADING THE COOKIE AS ABOVE
+    # TODO: REFACTOR THIS. THERE WILL BE A NEATER WAY
+    headers = {
+               'Host' : 'runlogger.appspot.com',
+               'User-Agent' : 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
+               'Cookie' : _makeCookieHeader(cookie)
+               }
+
+    #return HttpResponse(response.headers)
 
     #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
     #urllib2.install_opener(opener)
 
-    #theurl = 'https://secure-nikeplus.nike.com/services/profileService?action=login&login=kyuss_1@hotmail.com&password=pyth0n1c&locale=en_us'
-    #theurl2 = 'https://secure-nikeplus.nike.com/nikeplus/v1/services/app/get_user_data.jsp'
+
+    theurl2 = 'https://secure-nikeplus.nike.com/nikeplus/v1/services/app/get_user_data.jsp'
+
 
     #req = urllib2.Request(theurl)
     #handle = urllib2.urlopen(req).read()
@@ -160,10 +192,19 @@ def my_test(request):
     #req2 = urllib2.Request(theurl2)
     #handle2 = urllib2.urlopen(req2).read()
 
+    response = urlfetch.fetch(url=theurl2,headers=headers)
+
+    from xml.dom import minidom
+    dom = minidom.parseString(response.content)
+    id = dom.getElementsByTagName('user')[0].getAttribute('id')
+
+    return HttpResponse(id, mimetype='application/json')
+
+    #return HttpResponse(handle2)
+
     #from xml.dom import minidom
     #dom = minidom.parseString(handle2)
     #foo = dom.getElementsByTagName('user')[0].getAttribute('id')
 
     #return HttpResponse(foo, mimetype='application/json')
-
-    return HttpResponse(callback + 'hello')
+    #return HttpResponse(callback + 'hello')
