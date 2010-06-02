@@ -69,7 +69,7 @@ class RegistrationManager(models.Manager):
                 return user
         return False
     
-    def create_inactive_user(self, username, password, email, domain_override="", 
+    def create_inactive_user(self, username, password, email, nike_user_id, domain_override="", 
                              send_email=True):
         """
         Create a new, inactive ``User``, generate a
@@ -111,7 +111,7 @@ class RegistrationManager(models.Manager):
         from registration.signals import user_registered
         # prepend "key_" to the key_name, because key_names can't start with numbers
         new_user = User(username=username, key_name="key_"+username.lower(),
-            email=email, is_active=False)
+            email=email, nike_user_id=nike_user_id, is_active=False)
         new_user.set_password(password)
         new_user.put()
         
