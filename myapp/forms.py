@@ -14,10 +14,16 @@ class UserRegistrationForm(forms.ModelForm):
         label=_(u'Username'))
     email = forms.EmailField(widget=forms.TextInput(attrs=dict(maxlength=75)),
          label=_(u'Email address'))
+    nike_user_id = forms.CharField(widget=forms.HiddenInput(attrs=dict(maxlength=75, value="")),
+                                   label=_(u'nike user id'))
     password1 = forms.CharField(widget=forms.PasswordInput(render_value=False),
         label=_(u'Password'))
     password2 = forms.CharField(widget=forms.PasswordInput(render_value=False),
         label=_(u'Password (again)'))
+    nike_id = forms.CharField(widget=forms.TextInput(attrs=dict(maxlength=75)),
+        label=_(u'Nike+ E-Mail Address or Login ID'))
+    nike_password = forms.CharField(widget=forms.PasswordInput(attrs=dict(maxlength=75)),
+        label=_(u'Nike+ Password'))
 
     def clean_username(self):
         """
@@ -59,6 +65,7 @@ class UserRegistrationForm(forms.ModelForm):
             username=self.cleaned_data['username'],
             password=self.cleaned_data['password1'],
             email=self.cleaned_data['email'],
+            nike_user_id=self.cleaned_data['nike_user_id'],
             domain_override=domain_override)
         self.instance = new_user
         return super(UserRegistrationForm, self).save()
