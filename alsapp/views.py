@@ -10,6 +10,7 @@ from django.views.generic.list_detail import object_list, object_detail
 from django.views.generic.create_update import create_object
 from google.appengine.ext import db
 from google.appengine.api import users
+from google.appengine.api import urlfetch
 import urllib2
 import datetime
 from xml.dom import minidom
@@ -20,7 +21,7 @@ def index(request):
 		user = User.get_by_key_name("key_"+username.lower())
 		if user and user.is_active:
 			last_scrape = user.nike_last_scrape
-		return object_list(request, Run.all().filter('user =', user), paginate_by=100,
+		return object_list(request, Run.all().filter('user =', user), paginate_by=150,
 		                   extra_context={'last_scrape':last_scrape})
 	
 def detail(request, key):
@@ -52,33 +53,50 @@ def get_nike_plus_data(request):
 
 
 	# TODO: protect against the case where a user_id hasn't been set. force this to be set upon registration?
-		
+	
 	username = request.user.username
 	user = User.get_by_key_name("key_"+username.lower())
 	
 	if user and user.is_active:
 		last_scrape_time = user.nike_last_scrape
 		userId = user.nike_user_id
+	else:
+		last_scrape_time = None
 		
 	if not last_scrape_time:
 		last_scrape_time = datetime.datetime(1970, 1, 1) # Set it to an arbitrary early date
-
-	response = urllib2.urlopen('http://nikeplus.nike.com/nikeplus/v1/services/widget/get_public_run_list.jsp?userID=%s' % userId).read()
-	dom = minidom.parseString(response)
+	
+	#response = urllib2.urlopen('http://nikeplus.nike.com/nikeplus/v1/services/widget/get_public_run_list.jsp?userID=%s' % userId).read()
+	#response = urlfetch.fetch('https://secure-nikerunning.nike.com/nikeplus/v1/services/app/run_list.jsp')
+	#response = urlfetch.fetch('http://nikerunning.nike.com/nikeplus/v2/services/app/run_list.jsp?userID=%s&startIndex=0&endIndex=5' % userId)
+	
+	# don't specify startIndex and endIndex in the URL i.e. get all runs
+	response = urlfetch.fetch('http://nikerunning.nike.com/nikeplus/v2/services/app/run_list.jsp?userID=%s' % userId)
+	dom = minidom.parseString(response.content)
+	
 	run_ids_and_times = []
+	# N.B. in the following code I replaced 'startTime' with 'syncTime' - this makes sense
+	
+	# AUG 14TH 2010 - NOTE - THIS IS PROBABLY REALLY INEFFICIENT!!!
+	# WOULD BE BETTER TO LIMIT THE AMOUNT OF RUNS I GET IN THE REQUEST (i.e. use startIndex/endIndex)
+	# THIS LIMIT NEEDS TO BE BASED ON nike_last_scrape
+	#
+	# IDEA: START AT END OF XML FILE AND MOVE BACKWARDS, CHECKING THE syncTime value until
+	# it becomes earlier than nike_last_scrape 
 	for run in dom.getElementsByTagName('run'):
 		run_id = run.getAttribute('id')
-		run_time = run.getElementsByTagName('startTime')[0]
-		run_time = run_time.toxml()
-		run_time = run_time.replace('<startTime>', '') # Get rid of the opening startTime tag
-		run_time = run_time.split('+')[0] # Strip off the time zone stuff and closing tag
-		run_time = datetime.datetime.strptime(run_time, '%Y-%m-%dT%H:%M:%S')
 		
-		run_ids_and_times.append((run_id, run_time))
+		sync_time = run.getElementsByTagName('syncTime')[0]
+		sync_time = sync_time.toxml()
+		sync_time = sync_time.replace('<syncTime>', '') # Get rid of the opening syncTime tag
+		sync_time = sync_time.split('+')[0] # Strip off the time zone stuff and closing tag
+		sync_time = datetime.datetime.strptime(sync_time, '%Y-%m-%dT%H:%M:%S')
+		
+		run_ids_and_times.append((run_id, sync_time))
 		##run = Run(run_id=run_id, run_time=run_time)
 		##run.put()
-
-	# Only keep the runs which have been done after the last_scrape_time
+		
+	# Only keep the runs which have been synced after the last_scrape_time
 	run_ids_and_times = [(run_id, t) for (run_id, t) in run_ids_and_times if t > last_scrape_time]
 
 	# Set last scrape time to now
@@ -94,6 +112,14 @@ def get_nike_plus_data(request):
 	for run in dom.getElementsByTagName('run'):
 		for (run_id, t) in run_ids_and_times:
 			if run.getAttribute('id') == run_id:
+				
+				# Get the time the run started
+				run_time = run.getElementsByTagName('startTime')[0]
+				run_time = run_time.toxml()
+				run_time = run_time.replace('<startTime>', '') # Get rid of the opening startTime tag
+				run_time = run_time.split('+')[0] # Strip off the time zone stuff and closing tag
+				run_time = datetime.datetime.strptime(run_time, '%Y-%m-%dT%H:%M:%S')
+				
 				distance = run.getElementsByTagName('distance')[0]
 				distance = distance.toxml()
 				distance = distance.replace('<distance>', '')
@@ -101,7 +127,7 @@ def get_nike_plus_data(request):
 				distance = '%0.2f' % float(distance)
 				distance = float(distance)
 				
-				new_run = Run(user=user, run_id=run_id, run_time=t, distance=distance)
+				new_run = Run(user=user, run_id=run_id, run_time=run_time, distance=distance)
 				new_run.put()
 
 	return HttpResponseRedirect('/alsapp/')
@@ -158,7 +184,6 @@ def my_test(request):
 
     import Cookie
     cookie = Cookie.SimpleCookie()
-    from google.appengine.api import urlfetch
     headers = {
                'Host' : 'runlogger.appspot.com',
                'User-Agent' : 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
