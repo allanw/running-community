@@ -11,6 +11,7 @@ class User(GoogleUserTraits):
     first_name = db.StringProperty(verbose_name=_('first name'))
     last_name = db.StringProperty(verbose_name=_('last name'))
     nike_user_id = db.StringProperty(verbose_name=_('nike user id'))
+    nike_last_scrape = db.DateTimeProperty(verbose_name=('when Nike+ data was last pulled'))
 
     class Meta:
         verbose_name = _('user')
