@@ -7,6 +7,7 @@ class UserAdmin(admin.ModelAdmin):
         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'user_permissions')}),
         (_('Important dates'), {'fields': ('date_joined',)}),
         (_('Groups'), {'fields': ('groups',)}),
+        (_('Other info'), {'fields': ('nike_last_scrape',)}),
     )
     list_display = ('email', 'username', 'is_staff')
     list_filter = ('is_staff', 'is_superuser', 'is_active')
