@@ -2,14 +2,24 @@
 {% block title %}Welcome!{% endblock %}
 
 {% block content %}
-<h1>Welcome to the app-engine-patch sample project</h1>
-<p>This site is a demonstration of <a href="http://code.google.com/p/app-engine-patch/">app-engine-patch</a> which is an <a href="http://code.google.com/appengine/">App Engine</a> port of the <a href="http://www.djangoproject.com/">Django</a> web framework.</p>
 
-<h2>Examples</h2>
+<div class="date">Thursday 23rd September 2010</div>
+
+<div class="entry">
 <p>
 You can visit Django's <a href="/admin/">admin interface</a>. If needed, you can <a href="{% url myapp.views.create_admin_user %}">generate an admin user</a> with the username and password "admin".
 </p>
+</div>
 
+<div class="date">Wednesday 22nd September 2010</div>
+
+<div class="entry">
+<p>
+This was an OK run.
+</p>
+</div>
+
+<!--
 <p>
 Let's have a look at our
 <a href="{% url myapp.views.list_people %}">generic views sample</a>
@@ -32,4 +42,5 @@ Finally, we've integrated <a href="http://jquery.com/">jQuery</a> into the sampl
 <p>
 <span id='clickme'>Click me!</span>
 </p>
+-->
 {% endblock %}
