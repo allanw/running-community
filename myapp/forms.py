@@ -16,6 +16,8 @@ class UserRegistrationForm(forms.ModelForm):
          label=_(u'Email address'))
     nike_user_id = forms.CharField(widget=forms.HiddenInput(attrs=dict(maxlength=75, value="")),
                                    label=_(u'nike user id'))
+    nike_last_scrape = forms.CharField(required=False, widget=forms.HiddenInput(attrs=dict(maxlength=75, value="")),
+                                        label=_(u'last nike scrape'))
     password1 = forms.CharField(widget=forms.PasswordInput(render_value=False),
         label=_(u'Password'))
     password2 = forms.CharField(widget=forms.PasswordInput(render_value=False),
