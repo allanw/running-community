@@ -21,7 +21,7 @@ def index(request):
 		user = User.get_by_key_name("key_"+username.lower())
 		if user and user.is_active:
 			last_scrape = user.nike_last_scrape
-		return object_list(request, Run.all().filter('user =', user), paginate_by=150,
+		return object_list(request, Run.all().filter('user =', user).order('-run_time'), paginate_by=150,
 		                   extra_context={'last_scrape':last_scrape})
 	
 def detail(request, key):
