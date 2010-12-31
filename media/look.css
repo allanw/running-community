@@ -1,7 +1,42 @@
 /* Add your global CSS (i.e., code that is project-specific and not part of any app) here. */
 
 body {
-  padding: 15px 20px;
+	/* 14px font/20px line height */
+/*	font: 16px/22px Allan, "Palatino Linotype";*/
+}
+
+h1 { 
+	font-family: 'Just Another Hand', arial, serif;
+	font-size: 56px;
+}
+
+#header, #menu, #footer {
+	width: 800px;
+	margin: auto;
+}
+
+.container {
+	width: 800px;
+}
+
+div.date {
+	float: left;
+	width: 120px;
+	text-align: right;
+	font-style: italic;
+}
+
+div.entry {
+	margin-left: 130px;
+	margin-right: 115px;
+}
+
+body a {
+	text-decoration: none;
+}
+
+#login {
+	float: right;
 }
 
 #clickme {
