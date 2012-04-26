@@ -13,3 +13,4 @@ _generated_media
 desktop.ini
 settings_overrides.py
 nbproject
+.DS_Store
