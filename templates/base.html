@@ -11,6 +11,7 @@
     {% block css %}
       <link rel="stylesheet" type="text/css"  media="screen, projection" href="{{ MEDIA_URL }}combined-{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}.css" />
       <link rel="stylesheet" type="text/css"  media="print" href="{{ MEDIA_URL }}combined-print-{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}.css" />
+    <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
       <!--[if IE]>
         <link rel="stylesheet" type="text/css" media="screen, projection" href="{{ MEDIA_URL }}ie.css">
       <![endif]-->
@@ -21,49 +22,131 @@
     {% endblock %}
 
 	<link href='http://fonts.googleapis.com/css?family=Just+Another+Hand' rel='stylesheet' type='text/css'>
+	
+	<style type="text/css">
+	html, body {
+      background-color: #eee;
+    }
+
+	body {
+      padding-top: 40px; /* 40px to make the container go all the way to the bottom of the topbar */
+    }
+	
+	.container {
+      width: 820px; /* downsize our container to make the content feel a bit tighter and more cohesive. NOTE: this removes two full columns from the grid, meaning you only go to 14 columns and not 16. */
+    }
+
+    /* The white background content wrapper */
+    .content {
+      background-color: #fff;
+      padding: 20px;
+      margin: 0 -20px; /* negative indent the amount of the padding to maintain the grid system */
+      -webkit-border-radius: 0 0 6px 6px;
+         -moz-border-radius: 0 0 6px 6px;
+              border-radius: 0 0 6px 6px;
+      -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.15);
+         -moz-box-shadow: 0 1px 2px rgba(0,0,0,.15);
+              box-shadow: 0 1px 2px rgba(0,0,0,.15);
+    }
+
+    /* Page header tweaks */
+    .page-header {
+      background-color: #f5f5f5;
+      padding: 20px 20px 10px;
+      margin: -20px -20px 20px;
+    }
+	</style>
 
     {% block extra-head %}{% endblock %}
   </head>
 
   <body>
     {% block header %}
-      <div id="header">
+      <div class="topbar">
+		<div class="fill">
+			<div class="container">
 	
-		<h1><a href="#" class="logo">Run Logger</a></h1>
-		<div id="login">
+		<a class="brand" href="#">Runlogger</a>
+		<ul class="nav">
+			<li><a href="#">My Runs</a></li>
+			<li><a href="#">About</a></li>
+			<li><a href="#">Contact</a></li>
+		</ul>
+		
 		{% if user.is_authenticated %}
-          Welcome, {{ user.username }}!
+		<div id="welcome" class="pull-right">
+		  Welcome, {{ user.username }}!
           <a href="{% url django.contrib.auth.views.logout %}">Logout</a>
+</div>
         {% else %}
-          <a href="{% url django.contrib.auth.views.login %}">Login</a>
-          or <a href="{% url registration.views.register %}">register</a>
-        {% endif %}
+		
+		<!-- TODO - don't use br tag -->
+		<div class="pull-right register">
+		<a href="{% url registration_register %}">register</a><br />
+		<a href="#">forgot password?</a>
 		</div>
 		
-      </div>
+		<form action="{% url auth_login %}" method="post" class="pull-right">
+          <input class="input-small" id="id_username" type="text" placeholder="Username" name="username">
+          <input class="input-small" id="id_password" type="password" placeholder="Password" name="password">
+          <button class="btn" type="submit">Sign in</button>
+		
+			
+        </form>
+		
+		{% endif %}
+		
+		</div>
+	  </div>
+	</div>
+		
     {% endblock %}
 
-    <div id="menu">
+    <!-- <div id="menu">
       <a href="{% url myapp.views.list_people %}">Generic views sample</a> |
       <a href="/admin/">Admin interface</a> |
       <a href="http://code.google.com/p/app-engine-patch/">Visit app-engine-patch</a> |
       <a href="http://code.google.com/p/app-engine-patch/wiki/Documentation">Documentation</a>
-    </div>
+    </div> -->
 
-    <div id="content" class="container">
-      {% block content-header %}
-        {% if error %}<div class="error">{{ error }}</div>{% endif %}
-        {% if info %}<div class="info">{{ info }}</div>{% endif %}
-        {% if messages %}
-          {% for message in messages %}
-            <div class="info">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endblock %}
-      {% block content %}{% endblock %}
-    </div>
-    <div id="footer">
-      <p>&copy; 2010 Allan Whatmough</p>
-    </div>
+	<!-- <div id="sidebar" class="span-7 prepend-1 last">
+		Last synced: {{last_scrape}} <a href="{% url runs.views.get_nike_plus_data %}">Sync now</a>
+		<a href="{% url runs.views.add_poll %}">Create poll</a>
+	</div> -->
+	
+	<div class="container">
+
+	    <div class="content">
+		{% block page-header %}{% endblock %}
+	      {% block content-header %}
+			<div class="row">
+				<div class="span10">
+	        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+	        {% if info %}<div class="info">{{ info }}</div>{% endif %}
+	        {% if messages %}
+	          {% for message in messages %}
+	            <div class="info">{{ message }}</div>
+	          {% endfor %}
+	        {% endif %}
+			{% block content %}{% endblock %}
+	      {% endblock %}
+		</div>
+		
+		{% block sidebar %}
+		<div class="span4">
+			Add run<br />
+			
+			<a href="{% url get_nike_plus_data %}">Import from Nike+</a><br />
+			<small>Last synced: 20/01/12 08:36</small><br /><br />
+			
+			Weekly mileage: 10 miles<br /><br />
+			2012<br />
+			2011<br />
+		</div>
+		{% endblock %}
+		</div>
+	    </div>
+
+		</div>
   </body>
 </html>
