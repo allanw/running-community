@@ -69,6 +69,7 @@ MIDDLEWARE_CLASSES = (
     'ragendja.sites.dynamicsite.DynamicSiteIDMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
     'django.contrib.redirects.middleware.RedirectFallbackMiddleware',
+    'pagination.middleware.PaginationMiddleware',
 )
 
 # Google authentication
@@ -79,7 +80,7 @@ AUTH_USER_MODULE = 'ragendja.auth.hybrid_models'
 
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/runs/'
 
 INSTALLED_APPS = (
     # Add jquery support (app is in "common" folder). This automatically
@@ -90,7 +91,7 @@ INSTALLED_APPS = (
     'jquery',
 
     # Add blueprint CSS (http://blueprintcss.org/)
-    'blueprintcss',
+    #'blueprintcss',
 
     'django.contrib.auth',
     'django.contrib.sessions',
@@ -102,8 +103,9 @@ INSTALLED_APPS = (
     'appenginepatcher',
     'ragendja',
     'myapp',
-    'alsapp',
+    'runs',
     'registration',
+    'pagination',
     'mediautils',
 )
 
