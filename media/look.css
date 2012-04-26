@@ -10,25 +10,51 @@ h1 {
 	font-size: 56px;
 }
 
-#header, #menu, #footer {
+/*#header, #menu, #footer {
 	width: 800px;
 	margin: auto;
 }
 
 .container {
 	width: 800px;
+}*/
+
+div.register {
+	margin-left: 5px;
+}
+
+#welcome {
+	padding: 10px 10px 11px;
+}
+
+div.run {
+	border-radius: 10px;
+	background: grey;
+	margin-bottom: 5px;
+	padding: 15px;
 }
 
 div.date {
-	float: left;
-	width: 120px;
-	text-align: right;
-	font-style: italic;
 }
 
 div.entry {
-	margin-left: 130px;
-	margin-right: 115px;
+	margin-top: 10px;
+	float: left;
+}
+
+div.entry .map {
+	float: left;
+	margin-right: 20px;
+}
+
+
+div.entry .rundetail ul {
+	list-style-type: none;
+}
+
+div.entry .rundetail ul li {
+	color: #404040;
+	font-size: 1.1em;
 }
 
 body a {
