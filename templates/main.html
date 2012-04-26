@@ -3,21 +3,36 @@
 
 {% block content %}
 
-<div class="date">Thursday 23rd September 2010</div>
+<h1>Log your runs</h1>
+<h2>Runlogger makes it easy to:</h2>
+<ul>
+	<li>Record your runs and track your progress</li>
+	<li>Keep up to date with your friend's runs</li>
+	<li>Set challenges for yourself and your friends</li>
+</ul>
 
-<div class="entry">
 <p>
-You can visit Django's <a href="/admin/">admin interface</a>. If needed, you can <a href="{% url myapp.views.create_admin_user %}">generate an admin user</a> with the username and password "admin".
+<a class="btn btn-primary btn-large">Sign in</a> or <a class="btn btn-primary btn-large">Sign up</a> to get started!
 </p>
-</div>
 
-<div class="date">Wednesday 22nd September 2010</div>
+<!-- <div class="entry">
+	<div class="map">
+	<iframe width="240" height="200" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://www.google.com/maps?f=q&amp;source=s_q&amp;hl=en&amp;geocode=&amp;q=e8+2hw&amp;aq=&amp;sll=37.09024,-95.712891&amp;sspn=31.28862,67.763672&amp;vpsrc=0&amp;ie=UTF8&amp;hq=&amp;hnear=London+E8+2HW,+United+Kingdom&amp;t=m&amp;z=14&amp;ll=51.549227,-0.065919&amp;output=embed"></iframe><br /><small><a href="http://www.google.com/maps?f=q&amp;source=embed&amp;hl=en&amp;geocode=&amp;q=e8+2hw&amp;aq=&amp;sll=37.09024,-95.712891&amp;sspn=31.28862,67.763672&amp;vpsrc=0&amp;ie=UTF8&amp;hq=&amp;hnear=London+E8+2HW,+United+Kingdom&amp;t=m&amp;z=14&amp;ll=51.549227,-0.065919" style="color:#0000FF;text-align:left">View Larger Map</a></small>
+	</div>
+	
+	<div class="rundetail">
+	<ul>
+		<li><strong>Distance:</strong> 5.75km</li>
+		<li><strong>Duration:</strong> 20:45</li>
+		<li><strong>Calories:</strong> 350</li>
+		<li><strong>Description :</strong> This is a test description. It should not exceed 140 characters. This is the same limit Twitter imposes. It keeps things nice and brief.</li>
+	</ul>
+	
+	Edit run
+	</div> -->
+<!-- You can visit Django's <a href="/admin/">admin interface</a>. If needed, you can <a href="{% url myapp.views.create_admin_user %}">generate an admin user</a> with the username and password "admin". -->
 
-<div class="entry">
-<p>
-This was an OK run.
-</p>
-</div>
+<!-- </div> -->
 
 <!--
 <p>
@@ -44,3 +59,5 @@ Finally, we've integrated <a href="http://jquery.com/">jQuery</a> into the sampl
 </p>
 -->
 {% endblock %}
+
+{% block sidebar %}{% endblock %}
